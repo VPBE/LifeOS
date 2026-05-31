@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404 – Page Not Found | LifeOS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0b0b10;
+      --card:    #1c1c2e;
+      --purple:  #8b7cf8;
+      --blue:    #4f9cf9;
+      --muted:   #7878a0;
+      --text:    #eeeef7;
+      --border:  rgba(255,255,255,0.07);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      background-image:
+        radial-gradient(ellipse 70% 50% at 20% 10%, rgba(139,124,248,0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 90%, rgba(79,156,249,0.07) 0%, transparent 60%);
+    }
+
+    .container {
+      max-width: 480px;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .brand {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      background: linear-gradient(100deg, var(--purple), var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 40px;
+      display: block;
+      text-decoration: none;
+    }
+
+    .error-code {
+      font-family: 'Syne', sans-serif;
+      font-size: 96px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -4px;
+      background: linear-gradient(135deg, var(--purple) 0%, var(--blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      background: var(--purple);
+      color: #fff;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:hover {
+      background: #a093ff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(139,124,248,0.4);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="brand">⚡ LifeOS</a>
+    <div class="error-code">404</div>
+    <h1>Page not found</h1>
+    <p>The page you're looking for doesn't exist or was moved.<br>Head back to the dashboard to get back on track.</p>
+    <a href="/" class="btn">🏠 Go to Dashboard</a>
+  </div>
+</body>
+</html>

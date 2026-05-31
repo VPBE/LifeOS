@@ -1,0 +1,59 @@
+{
+  "name": "LifeOS – Your Life, Organized",
+  "short_name": "LifeOS",
+  "description": "Your personal life management dashboard for school, productivity, notes, finance, and content creation.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b0b10",
+  "theme_color": "#8b7cf8",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["productivity", "education", "finance"],
+  "shortcuts": [
+    {
+      "name": "School",
+      "short_name": "School",
+      "url": "/modules/school.html",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Productivity",
+      "short_name": "Tasks",
+      "url": "/modules/productivity.html",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Notes",
+      "short_name": "Notes",
+      "url": "/modules/notes.html",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Finance",
+      "short_name": "Finance",
+      "url": "/modules/finance.html",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Creator",
+      "short_name": "Creator",
+      "url": "/modules/creator.html",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

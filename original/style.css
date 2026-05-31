@@ -1,0 +1,328 @@
+/* =========================================
+   LIFEOS – GLOBAL STYLES
+   style.css
+   ========================================= */
+
+/* ----- CSS Reset & Variables ----- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Colors */
+  --bg-primary:    #0f0f13;   /* deep dark background */
+  --bg-secondary:  #1a1a24;   /* sidebar / card bg */
+  --bg-card:       #22223a;   /* module cards */
+  --accent-purple: #7c6fe0;   /* primary accent */
+  --accent-blue:   #4f9cf9;   /* secondary accent */
+  --accent-green:  #3ecf8e;   /* success / school */
+  --accent-amber:  #f5a623;   /* finance */
+  --accent-pink:   #e066a0;   /* creator */
+  --accent-teal:   #38bdf8;   /* productivity */
+  --text-primary:  #f0f0f7;   /* main text */
+  --text-muted:    #8888aa;   /* muted labels */
+  --border:        rgba(255,255,255,0.08);
+
+  /* Module accent colors */
+  --school-color:      #3ecf8e;
+  --productivity-color:#38bdf8;
+  --notes-color:       #7c6fe0;
+  --finance-color:     #f5a623;
+  --creator-color:     #e066a0;
+
+  /* Spacing & shape */
+  --sidebar-width: 230px;
+  --radius-sm:     8px;
+  --radius-md:     14px;
+  --radius-lg:     20px;
+  --transition:    0.22s ease;
+}
+
+/* ----- Base ----- */
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  overflow-x: hidden;
+}
+
+a { text-decoration: none; color: inherit; }
+
+/* =========================================
+   SIDEBAR
+   ========================================= */
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0;
+  height: 100vh;
+  z-index: 200;
+  transition: transform var(--transition);
+}
+
+/* Brand / logo area */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand-icon {
+  font-size: 24px;
+}
+
+.brand-name {
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Nav links */
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 15px;
+  font-weight: 500;
+  transition: background var(--transition), color var(--transition);
+}
+
+.nav-item:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: rgba(124, 111, 224, 0.18);
+  color: var(--accent-purple);
+}
+
+.nav-icon { font-size: 18px; }
+
+/* Sidebar footer */
+.sidebar-footer {
+  padding: 16px 20px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+
+/* =========================================
+   MAIN CONTENT
+   ========================================= */
+.main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================================
+   TOPBAR
+   ========================================= */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar-title {
+  font-size: 17px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.topbar-date {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Hamburger (hidden on desktop) */
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+.hamburger:hover { background: rgba(255,255,255,0.08); }
+
+/* =========================================
+   WELCOME BANNER
+   ========================================= */
+.welcome-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32px 28px 20px;
+  gap: 16px;
+}
+
+.welcome-text h1 {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.welcome-text p {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.welcome-time {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--accent-purple);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+}
+
+/* =========================================
+   MODULE CARDS GRID
+   ========================================= */
+.modules-grid {
+  display: grid;
+  /* 2 columns on most screens */
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  padding: 0 28px 24px;
+}
+
+.module-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Colored left accent bar on each card */
+.module-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+}
+
+.module-card.school::before      { background: var(--school-color); }
+.module-card.productivity::before{ background: var(--productivity-color); }
+.module-card.notes::before       { background: var(--notes-color); }
+.module-card.finance::before     { background: var(--finance-color); }
+.module-card.creator::before     { background: var(--creator-color); }
+
+.module-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+
+.module-card.school:hover      { border-color: var(--school-color); }
+.module-card.productivity:hover{ border-color: var(--productivity-color); }
+.module-card.notes:hover       { border-color: var(--notes-color); }
+.module-card.finance:hover     { border-color: var(--finance-color); }
+.module-card.creator:hover     { border-color: var(--creator-color); }
+
+/* Card icon */
+.card-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+/* Card text */
+.card-info { flex: 1; }
+
+.card-info h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.card-info p {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Arrow */
+.card-arrow {
+  font-size: 20px;
+  color: var(--text-muted);
+  transition: transform var(--transition), color var(--transition);
+}
+
+.module-card:hover .card-arrow {
+  transform: translateX(4px);
+  color: var(--text-primary);
+}
+
+/* =========================================
+   QUICK STATS ROW
+   ========================================= */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
+  padding: 0 28px 40px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px 16px;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font
