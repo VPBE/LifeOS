@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LifeOS – School</title>
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    /* =========================================
+       SCHOOL MODULE – LOCAL STYLES
+       ========================================= */
+
+    /* Tab navigation between sub-features */
+    .tab-bar {
+      display: flex;
+      gap: 6px;
+      padding: 0 28px 20px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: transparent;
+      color: #8888aa;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      background: rgba(255,255,255,0.06);
+      color: #f0f0f7;
+    }
+
+    .tab-btn.active {
+      background: #3ecf8e;
+      border-color: #3ecf8e;
+      color: #0f0f13;
+      font-weight: 600;
+    }
+
+    /* Each tab's content panel */
+    .tab-panel {
+      display: none; /* hidden by default */
+    }
+
+    .tab-panel.active {
+      display: block; /* shown when selected */
+    }
+
+    /* ---- Section card (white-ish box) ---- */
+    .section-card {
+      background: #1a1a24;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .section-card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: #f0f0f7;
+    }
+
+    /* ---- Input row styling ---- */
+    .input-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .input-row input,
+    .input-row select,
+    .input-row textarea {
+      flex: 1;
+      min-width: 130px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: #0f0f13;
+      color: #f0f0f7;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-row input:focus,
+    .input-row select:focus,
+    .input-row textarea:focus {
+      border-color: #3ecf8e;
+    }
+
+    /* ---- Add button ---- */
+    .btn-add {
+      padding: 9px 20px;
+      background: #3ecf8e;
+      color: #0f0f13;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-add:hover { opacity: 0.85; }
+
+    /* ---- Data list (shared by schedule, assignments, exams) ---- */
+    .data-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .data-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: #0f0f13;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06);
+      font-size: 14px;
+    }
+
+    .data-item-info { flex: 1; }
+    .data-item-title {
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    .data-item-sub {
+      font-size: 12px;
+      color: #8888aa;
+    }
+
+    /* Delete button on items */
+    .btn-delete {
+      background: none;
+      border: none;
+      color: #8888aa;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+      line-height: 1;
+    }
+
+    .btn-delete:hover {
+      color: #ff6b6b;
+      background: rgba(255,107,107,0.1);
+    }
+
+    /* Empty state message */
+    .empty-msg {
+      text-align: center;
+      padding: 24px 0;
+      color: #8888aa;
+      font-size: 14px;
+    }
+
+    /* ---- Assignment status badge ---- */
+    .badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .badge.pending  { background: rgba(245,166,35,0.18);  color: #f5a623; }
+    .badge.done     { background: rgba(62,207,142,0.18);  color: #3ecf8e; }
+    .badge.overdue  { background: rgba(255,107,107,0.18); color: #ff6b6b; }
+
+    /* ---- Exam countdown chip ---- */
+    .countdown-chip {
+      background: rgba(62,207,142,0.12);
+      color: #3ecf8e;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .countdown-chip.urgent { background: rgba(255,107,107,0.15); color: #ff6b6b; }
+    .countdown-chip.past   { background: rgba(136,136,170,0.15); color: #8888aa; }
+
+    /* ---- GPA Calculator styles ---- */
+    .gpa-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .gpa-row input,
+    .gpa-row select {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: #0f0f13;
+      color: #f0f0f7;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .gpa-row input { width: 180px; }
+    .gpa-row select { width: 90px; }
+    .gpa-row input:focus,
+    .gpa-row select:focus { border-color: #3ecf8e; }
+
+    .gpa-result-box {
+      background: rgba(62,207,142,0.1);
+      border: 1px solid rgba(62,207,142,0.3);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    .gpa-score {
+      font-size: 52px;
+      font-weight: 700;
+      color: #3ecf8e;
+      line-height: 1;
+    }
+
+    .gpa-label {
+      font-size: 13px;
+      color: #8888aa;
+      margin-top: 6px;
+    }
+
+    /* Schedule day badge */
+    .day-badge {
+      background: rgba(62,207,142,0.15);
+      color: #3ecf8e;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+      .tab-bar { padding: 0 16px 16px; }
+      .input-row { flex-direction: column; }
+      .input-row input,
+      .input-row select { min-width: unset; width: 100%; }
+      .btn-add { width: 100%; text-align: center; }
+      .gpa-row { flex-direction: column; align-items: stretch; }
+      .gpa-row input, .gpa-row select { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== SIDEBAR (same on every page) ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-name">LifeOS</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="../index.html"            class="nav-item">🏠 <span class="nav-label">Dashboard</span></a>
+      <a href="school.html"              class="nav-item active">🎓 <span class="nav-label">School</span></a>
+      <a href="productivity.html"        class="nav-item">✅ <span class="nav-label">Productivity</span></a>
+      <a href="notes.html"               class="nav-item">📝 <span class="nav-label">Notes</span></a>
+      <a href="finance.html"             class="nav-item">💰 <span class="nav-label">Finance</span></a>
+      <a href="creator.html"             class="nav-item">🎬 <span class="nav-label">Creator</span></a>
+    </nav>
+    <div class="sidebar-footer">LifeOS v1.0</div>
+  </aside>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main-content">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">☰</button>
+      <div class="topbar-title">🎓 School</div>
+      <div class="topbar-date" id="currentDate"></div>
+    </header>
+
+    <!-- Module header -->
+    <div class="module-header">
+      <a href="../index.html" class="back-btn">← Back to Dashboard</a>
+      <h1>School</h1>
+      <p>Manage your schedule, assignments, exams, and GPA all in one place.</p>
+    </div>
+
+    <!-- ===== TAB BAR ===== -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('schedule')">📅 Schedule</button>
+      <button class="tab-btn"        onclick="switchTab('assignments')">📋 Assignments</button>
+      <button class="tab-btn"        onclick="switchTab('exams')">⏳ Exams</button>
+      <button class="tab-btn"        onclick="switchTab('gpa')">🎓 GPA</button>
+    </div>
+
+    <!-- ===== MODULE BODY ===== -->
+    <div class="module-body">
+
+      <!-- ========================
+           TAB 1: CLASS SCHEDULE
+           ======================== -->
+      <div id="tab-schedule" class="tab-panel active">
+
+        <div class="section-card">
+          <h3>Add a Class</h3>
+          <div class="input-row">
+            <input type="text"   id="className"    placeholder="Subject name (e.g. Math 101)" />
+            <select id="classDay">
+              <option value="">Day</option>
+              <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+              <option>Thursday</option><option>Friday</option><option>Saturday</option>
+            </select>
+            <input type="time"   id="classTime"    />
+            <input type="text"   id="classRoom"    placeholder="Room / Online" />
+            <button class="btn-add" onclick="addClass()">+ Add</button>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <h3>My Weekly Schedule</h3>
+          <div class="data-list" id="scheduleList">
+            <div class="empty-msg">No classes added yet. Add one above!</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================
+           TAB 2: ASSIGNMENTS
+           ======================== -->
+      <div id="tab-assignments" class="tab-panel">
+
+        <div class="section-card">
+          <h3>Add an Assignment</h3>
+          <div class="input-row">
+            <input type="text"   id="assignTitle"    placeholder="Assignment title" />
+            <input type="text"   id="assignSubject"  placeholder="Subject" />
+            <input type="date"   id="assignDue"      />
+            <button class="btn-add" onclick="addAssignment()">+ Add</button>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <h3>All Assignments</h3>
+          <!-- Filter buttons -->
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <button class="tab-btn active" id="filter-all"     onclick="filterAssignments('all')">All</button>
+            <button class="tab-btn"        id="filter-pending" onclick="filterAssignments('pending')">Pending</button>
+            <button class="tab-btn"        id="filter-done"    onclick="filterAssignments('done')">Done</button>
+          </div>
+          <div class="data-list" id="assignmentList">
+            <div class="empty-msg">No assignments yet. Add one above!</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================
+           TAB 3: EXAM COUNTDOWNS
+           ======================== -->
+      <div id="tab-exams" class="tab-panel">
+
+        <div class="section-card">
+          <h3>Add an Exam</h3>
+          <div class="input-row">
+            <input type="text"   id="examName"     placeholder="Exam name (e.g. Finals – Math)" />
+            <input type="date"   id="examDate"     />
+            <input type="text"   id="examLocation" placeholder="Room / Online (optional)" />
+            <button class="btn-add" onclick="addExam()">+ Add</button>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <h3>Upcoming Exams</h3>
+          <div class="data-list" id="examList">
+            <div class="empty-msg">No exams added yet. Add one above!</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================
+           TAB 4: GPA CALCULATOR
+           ======================== -->
+      <div id="tab-gpa" class="tab-panel">
+
+        <div class="section-card">
+          <h3>Enter Your Grades</h3>
+          <p style="font-size:13px;color:#8888aa;margin-bottom:14px;">
+            Add each subject with its grade and credit units. GPA is calculated automatically.
+          </p>
+
+          <!-- Rows of subject grades -->
+          <div id="gradeRows">
+            <!-- Grade rows are added here by JS -->
+          </div>
+
+          <button class="btn-add" onclick="addGradeRow()" style="margin-top:8px;">
+            + Add Subject
+          </button>
+        </div>
+
+        <!-- GPA result display -->
+        <div class="gpa-result-box">
+          <div class="gpa-score" id="gpaScore">–</div>
+          <div class="gpa-label">Cumulative GPA (4.0 scale)</div>
+          <div style="font-size:13px;color:#8888aa;margin-top:6px;" id="gpaDetails"></div>
+        </div>
+
+      </div>
+
+    </div><!-- end .module-body -->
+  </main>
+
+  <!-- Mobile sidebar overlay -->
+  <div class="overlay" id="overlay"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../firebase.js"></script>
+  <script src="../app.js"></script>
+  <script>
+    // =========================================
+    // SCHOOL MODULE – JAVASCRIPT
+    // =========================================
+
+    // ---- Storage keys ----
+    const SCHEDULE_KEY    = 'lifeos_schedule';
+    const ASSIGNMENT_KEY  = 'lifeos_assignments';
+    const EXAM_KEY        = 'lifeos_exams';
+    const GPA_KEY         = 'lifeos_gpa_grades';
+
+    // ---- Helper: load (Firebase + localStorage fallback) ----
+    async function load(key) {
+      return await lifeOSLoad(key, []);
+    }
+
+    // ---- Helper: save (localStorage instantly + Firebase in background) ----
+    async function save(key, data) {
+      await lifeOSSave(key, data);
+      showSyncStatus('✓ Synced to cloud');
+    }
+
+    // ---- Helper: today's date string (YYYY-MM-DD) ----
+    function todayStr() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    // =========================================
+    // TAB SWITCHING
+    // =========================================
+    async function switchTab(tabName) {
+      // Hide all panels
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      // Remove active from all tab buttons
+      document.querySelectorAll('.tab-bar .tab-btn').forEach(b => b.classList.remove('active'));
+
+      // Show selected panel
+      document.getElementById('tab-' + tabName).classList.add('active');
+
+      // Mark clicked button as active
+      event.target.classList.add('active');
+    }
+
+    // =========================================
+    // TAB 1: CLASS SCHEDULE
+    // =========================================
+
+    // Day sort order
+    const DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    async function addClass() {
+      const name  = document.getElementById('className').value.trim();
+      const day   = document.getElementById('classDay').value;
+      const time  = document.getElementById('classTime').value;
+      const room  = document.getElementById('classRoom').value.trim();
+
+      // Basic validation
+      if (!name || !day) {
+        alert('Please enter a subject name and select a day.');
+        return;
+      }
+
+      const classes = await load(SCHEDULE_KEY);
+      classes.push({ id: Date.now(), name, day, time, room });
+      await save(SCHEDULE_KEY, classes);
+
+      // Clear inputs
+      document.getElementById('className').value = '';
+      document.getElementById('classDay').value  = '';
+      document.getElementById('classTime').value = '';
+      document.getElementById('classRoom').value = '';
+
+      await renderSchedule();
+    }
+
+    async function deleteClass(id) {
+      const classes = (await load(SCHEDULE_KEY)).filter(c => c.id !== id);
+      await save(SCHEDULE_KEY, classes);
+      await renderSchedule();
+    }
+
+    async function renderSchedule() {
+      const list    = document.getElementById('scheduleList');
+      const classes = await load(SCHEDULE_KEY);
+
+      if (classes.length === 0) {
+        list.innerHTML = '<div class="empty-msg">No classes added yet. Add one above!</div>';
+        return;
+      }
+
+      // Sort by day order, then by time
+      classes.sort((a, b) => {
+        const dayDiff = DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day);
+        if (dayDiff !== 0) return dayDiff;
+        return a.time.localeCompare(b.time);
+      });
+
+      list.innerHTML = classes.map(c => `
+        <div class="data-item">
+          <div class="data-item-info">
+            <div class="data-item-title">${c.name}</div>
+            <div class="data-item-sub">
+              <span class="day-badge">${c.day}</span>
+              ${c.time ? ' · ' + formatTime(c.time) : ''}
+              ${c.room ? ' · ' + c.room : ''}
+            </div>
+          </div>
+          <button class="btn-delete" onclick="deleteClass(${c.id})" title="Delete">✕</button>
+        </div>
+      `).join('');
+    }
+
+    // Convert 24hr time to 12hr format
+    function formatTime(time24) {
+      if (!time24) return '';
+      const [h, m] = time24.split(':').map(Number);
+      const ampm   = h >= 12 ? 'PM' : 'AM';
+      const h12    = h % 12 || 12;
+      return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+    }
+
+    // =========================================
+    // TAB 2: ASSIGNMENTS
+    // =========================================
+
+    let currentFilter = 'all'; // track active filter
+
+    async function addAssignment() {
+      const title   = document.getElementById('assignTitle').value.trim();
+      const subject = document.getElementById('assignSubject').value.trim();
+      const due     = document.getElementById('assignDue').value;
+
+      if (!title) {
+        alert('Please enter an assignment title.');
+        return;
+      }
+
+      const assignments = await load(ASSIGNMENT_KEY);
+      assignments.push({
+        id:      Date.now(),
+        title,
+        subject,
+        due,
+        status:  'pending',     // pending | done
+        created: todayStr()
+      });
+      await save(ASSIGNMENT_KEY, assignments);
+
+      // Clear inputs
+      document.getElementById('assignTitle').value   = '';
+      document.getElementById('assignSubject').value = '';
+      document.getElementById('assignDue').value     = '';
+
+      await renderAssignments();
+    }
+
+    async function deleteAssignment(id) {
+      const assignments = (await load(ASSIGNMENT_KEY)).filter(a => a.id !== id);
+      await save(ASSIGNMENT_KEY, assignments);
+      await renderAssignments();
+    }
+
+    async function toggleAssignment(id) {
+      const assignments = (await load(ASSIGNMENT_KEY)).map(a => {
+        if (a.id === id) {
+          // Toggle between pending and done
+          a.status = a.status === 'done' ? 'pending' : 'done';
+        }
+        return a;
+      });
+      await save(ASSIGNMENT_KEY, assignments);
+      await renderAssignments();
+    }
+
+    async function filterAssignments(filter) {
+      currentFilter = filter;
+
+      // Update filter button styles
+      ['all','pending','done'].forEach(f => {
+        const btn = document.getElementById('filter-' + f);
+        if (btn) btn.classList.toggle('active', f === filter);
+      });
+
+      await renderAssignments();
+    }
+
+    function getAssignmentStatus(a) {
+      if (a.status === 'done') return 'done';
+      if (a.due && a.due < todayStr()) return 'overdue';
+      return 'pending';
+    }
+
+    async function renderAssignments() {
+      const list = document.getElementById('assignmentList');
+      let assignments = await load(ASSIGNMENT_KEY);
+
+      // Auto-detect overdue
+      assignments = assignments.map(a => ({
+        ...a,
+        displayStatus: getAssignmentStatus(a)
+      }));
+
+      // Apply filter
+      if (currentFilter !== 'all') {
+        assignments = assignments.filter(a => a.displayStatus === currentFilter);
+      }
+
+      // Sort: overdue first, then by due date
+      assignments.sort((a, b) => {
+        const order = { overdue: 0, pending: 1, done: 2 };
+        return (order[a.displayStatus] - order[b.displayStatus]) || a.due?.localeCompare(b.due || '');
+      });
+
+      if (assignments.length === 0) {
+        list.innerHTML = '<div class="empty-msg">No assignments found.</div>';
+        return;
+      }
+
+      list.innerHTML = assignments.map(a => `
+        <div class="data-item">
+          <div class="data-item-info">
+            <div class="data-item-title"
+                 style="${a.displayStatus === 'done' ? 'text-decoration:line-through;opacity:0.5' : ''}">
+              ${a.title}
+            </div>
+            <div class="data-item-sub">
+              ${a.subject ? a.subject + ' · ' : ''}
+              ${a.due ? 'Due: ' + formatDate(a.due) : 'No due date'}
+            </div>
+          </div>
+          <span class="badge ${a.displayStatus}" onclick="toggleAssignment(${a.id})" title="Click to toggle">
+            ${a.displayStatus}
+          </span>
+          <button class="btn-delete" onclick="deleteAssignment(${a.id})" title="Delete">✕</button>
+        </div>
+      `).join('');
+    }
+
+    // Format YYYY-MM-DD → "Jun 15"
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    // =========================================
+    // TAB 3: EXAM COUNTDOWNS
+    // =========================================
+
+    async function addExam() {
+      const name     = document.getElementById('examName').value.trim();
+      const date     = document.getElementById('examDate').value;
+      const location = document.getElementById('examLocation').value.trim();
+
+      if (!name || !date) {
+        alert('Please enter an exam name and date.');
+        return;
+      }
+
+      const exams = await load(EXAM_KEY);
+      exams.push({ id: Date.now(), name, date, location });
+      await save(EXAM_KEY, exams);
+
+      // Clear inputs
+      document.getElementById('examName').value     = '';
+      document.getElementById('examDate').value     = '';
+      document.getElementById('examLocation').value = '';
+
+      await renderExams();
+    }
+
+    async function deleteExam(id) {
+      const exams = (await load(EXAM_KEY)).filter(e => e.id !== id);
+      await save(EXAM_KEY, exams);
+      await renderExams();
+    }
+
+    async function renderExams() {
+      const list  = document.getElementById('examList');
+      const exams = await load(EXAM_KEY);
+
+      if (exams.length === 0) {
+        list.innerHTML = '<div class="empty-msg">No exams added yet. Add one above!</div>';
+        return;
+      }
+
+      const now = new Date();
+      now.setHours(0, 0, 0, 0); // normalize to start of today
+
+      // Sort by date
+      exams.sort((a, b) => a.date.localeCompare(b.date));
+
+      list.innerHTML = exams.map(e => {
+        const examDate = new Date(e.date + 'T00:00:00');
+        const diff     = Math.round((examDate - now) / (1000 * 60 * 60 * 24));
+
+        // Determine countdown label and style
+        let chipClass, chipText;
+        if (diff < 0) {
+          chipClass = 'past';
+          chipText  = 'Past';
+        } else if (diff === 0) {
+          chipClass = 'urgent';
+          chipText  = 'TODAY';
+        } else if (diff <= 3) {
+          chipClass = 'urgent';
+          chipText  = diff === 1 ? 'Tomorrow' : `${diff} days`;
+        } else {
+          chipClass = '';
+          chipText  = `${diff} days`;
+        }
+
+        return `
+          <div class="data-item">
+            <div class="data-item-info">
+              <div class="data-item-title">${e.name}</div>
+              <div class="data-item-sub">
+                ${formatDate(e.date)}
+                ${e.location ? ' · ' + e.location : ''}
+              </div>
+            </div>
+            <span class="countdown-chip ${chipClass}">${chipText}</span>
+            <button class="btn-delete" onclick="deleteExam(${e.id})" title="Delete">✕</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // =========================================
+    // TAB 4: GPA CALCULATOR
+    // =========================================
+
+    // Grade letter → GPA point
+    const GRADE_POINTS = {
+      'A+': 4.0, 'A': 4.0, 'A-': 3.7,
+      'B+': 3.3, 'B': 3.0, 'B-': 2.7,
+      'C+': 2.3, 'C': 2.0, 'C-': 1.7,
+      'D+': 1.3, 'D': 1.0, 'D-': 0.7,
+      'F':  0.0
+    };
+
+    async function addGradeRow(subject = '', grade = 'A', units = 3) {
+      const container = document.getElementById('gradeRows');
+      const rowId     = Date.now() + Math.random(); // unique ID for this row
+
+      const row = document.createElement('div');
+      row.className   = 'gpa-row';
+      row.dataset.row = rowId;
+
+      row.innerHTML = `
+        <input type="text"
+               placeholder="Subject name"
+               value="${subject}"
+               oninput="saveAndCalcGPA()"
+               style="flex:1;min-width:120px;" />
+
+        <select onchange="saveAndCalcGPA()">
+          ${Object.keys(GRADE_POINTS).map(g =>
+            `<option value="${g}" ${g === grade ? 'selected' : ''}>${g}</option>`
+          ).join('')}
+        </select>
+
+        <input type="number"
+               value="${units}"
+               min="1" max="6"
+               placeholder="Units"
+               oninput="saveAndCalcGPA()"
+               style="width:70px;" />
+
+        <button class="btn-delete"
+                onclick="removeGradeRow(this)"
+                title="Remove">✕</button>
+      `;
+
+      container.appendChild(row);
+      calcGPA(); // recalc after adding row
+    }
+
+    async function removeGradeRow(btn) {
+      btn.closest('.gpa-row').remove();
+      await saveAndCalcGPA();
+    }
+
+    async function saveAndCalcGPA() {
+      // Collect all rows and save to localStorage
+      const rows   = document.querySelectorAll('.gpa-row');
+      const grades = [];
+
+      rows.forEach(row => {
+        const inputs  = row.querySelectorAll('input');
+        const select  = row.querySelector('select');
+        grades.push({
+          subject: inputs[0].value,
+          grade:   select.value,
+          units:   parseFloat(inputs[1].value) || 3
+        });
+      });
+
+      await save(GPA_KEY, grades);
+      calcGPA();
+    }
+
+    async function calcGPA() {
+      const rows = document.querySelectorAll('.gpa-row');
+      let totalPoints = 0;
+      let totalUnits  = 0;
+
+      rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const select = row.querySelector('select');
+        const units  = parseFloat(inputs[1].value) || 0;
+        const points = GRADE_POINTS[select.value] ?? 0;
+
+        totalPoints += points * units;
+        totalUnits  += units;
+      });
+
+      const gpaScore    = document.getElementById('gpaScore');
+      const gpaDetails  = document.getElementById('gpaDetails');
+
+      if (totalUnits === 0) {
+        gpaScore.textContent   = '–';
+        gpaDetails.textContent = '';
+        return;
+      }
+
+      const gpa = (totalPoints / totalUnits).toFixed(2);
+      gpaScore.textContent   = gpa;
+      gpaDetails.textContent = `${totalUnits} total units · ${rows.length} subject${rows.length !== 1 ? 's' : ''}`;
+
+      // Color code the GPA result
+      const gpaNum = parseFloat(gpa);
+      if (gpaNum >= 3.5)      gpaScore.style.color = '#3ecf8e'; // green
+      else if (gpaNum >= 2.5) gpaScore.style.color = '#f5a623'; // amber
+      else                    gpaScore.style.color = '#ff6b6b'; // red
+    }
+
+    async function loadGPARows() {
+      const grades = await load(GPA_KEY);
+      if (grades.length === 0) {
+        // Add 3 blank rows by default
+        addGradeRow(); addGradeRow(); addGradeRow();
+      } else {
+        for (const g of grades) addGradeRow(g.subject, g.grade, g.units);
+      }
+    }
+
+    // =========================================
+    // INIT – Run on page load
+    // =========================================
+    async function initSchool() {
+      await renderSchedule();
+      await renderAssignments();
+      await renderExams();
+      await loadGPARows();
+    }
+    await initSchool();
+
+  </script>
+
+</body>
+</html>
