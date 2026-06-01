@@ -333,7 +333,7 @@ a { text-decoration: none; color: inherit; }
 .module-card.notes::before        { background: var(--notes-color); box-shadow: 2px 0 12px rgba(139,124,248,0.35); }
 .module-card.finance::before      { background: var(--finance-color); box-shadow: 2px 0 12px rgba(245,166,35,0.35); }
 .module-card.creator::before      { background: var(--creator-color); box-shadow: 2px 0 12px rgba(224,102,160,0.35); }
-.module-card.creator::before      { background: var(--relationship-color); box-shadow: 2px 0 12px rgba(255,0,0,0.35); }
+.module-card.relationship::before { background: var(--relationship-color); box-shadow: 2px 0 12px rgba(255,0,0,0.35); }
 
 .module-card:hover {
   transform: translateY(-4px);
@@ -346,6 +346,7 @@ a { text-decoration: none; color: inherit; }
 .module-card.notes:hover        { border-color: rgba(139,124,248,0.4); }
 .module-card.finance:hover      { border-color: rgba(245,166,35,0.4); }
 .module-card.creator:hover      { border-color: rgba(224,102,160,0.4); }
+.module-card.relationship:hover { border-color: rgba(255,0,0,0.4); }
 
 .card-icon {
   font-size: 30px;
