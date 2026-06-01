@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LifeOS – Your Life, Organized</title>
+  <meta name="theme-color" content="#8b7cf8" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="LifeOS" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-name">LifeOS</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="nav-item active">
+        <span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span>
+      </a>
+      <a href="modules/school.html" class="nav-item">
+        <span class="nav-icon">🎓</span><span class="nav-label">School</span>
+      </a>
+      <a href="modules/productivity.html" class="nav-item">
+        <span class="nav-icon">✅</span><span class="nav-label">Productivity</span>
+      </a>
+      <a href="modules/notes.html" class="nav-item">
+        <span class="nav-icon">📝</span><span class="nav-label">Notes</span>
+      </a>
+      <a href="modules/finance.html" class="nav-item">
+        <span class="nav-icon">💰</span><span class="nav-label">Finance</span>
+      </a>
+      <a href="modules/creator.html" class="nav-item">
+        <span class="nav-icon">🎬</span><span class="nav-label">Creator</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">LifeOS v1.0</div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">☰</button>
+      <div class="topbar-title">Dashboard</div>
+      <div class="topbar-date" id="currentDate"></div>
+    </header>
+
+    <section class="welcome-banner">
+      <div class="welcome-text">
+        <h1>Welcome back! 👋</h1>
+        <p>Here's your life at a glance. Pick a module to get started.</p>
+      </div>
+      <div class="welcome-time" id="currentTime"></div>
+    </section>
+
+    <section class="modules-grid">
+      <a href="modules/school.html" class="module-card school">
+        <div class="card-icon">🎓</div>
+        <div class="card-info"><h2>School</h2><p>Schedule · Assignments · Exams · GPA</p></div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a href="modules/productivity.html" class="module-card productivity">
+        <div class="card-icon">✅</div>
+        <div class="card-info"><h2>Productivity</h2><p>To-Do · Planner · Habits · Pomodoro</p></div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a href="modules/notes.html" class="module-card notes">
+        <div class="card-icon">📝</div>
+        <div class="card-info"><h2>Notes</h2><p>Quick Notes · Lectures · Idea Vault</p></div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a href="modules/finance.html" class="module-card finance">
+        <div class="card-icon">💰</div>
+        <div class="card-info"><h2>Finance</h2><p>Income · Expenses · Savings Goals</p></div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a href="modules/creator.html" class="module-card creator">
+        <div class="card-icon">🎬</div>
+        <div class="card-info"><h2>Content Creator</h2><p>Ideas · Hooks · Uploads · Earnings</p></div>
+        <div class="card-arrow">→</div>
+      </a>
+    </section>
+
+    <section class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Tasks Today</div>
+        <div class="stat-value" id="statTasks">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Notes Saved</div>
+        <div class="stat-value" id="statNotes">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Habits Done</div>
+        <div class="stat-value" id="statHabits">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Days to Exam</div>
+        <div class="stat-value" id="statExam">–</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="overlay" id="overlay" style="display:none;"></div>
+
+  <!-- Firebase SDKs (must come before firebase.js and app.js) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <!-- LifeOS Firebase config & sync helpers -->
+  <script src="firebase.js"></script>
+
+  <!-- Main app logic -->
+  <script src="app.js"></script>
+
+  <!-- Register Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        // Unregister any old service workers, then register fresh
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          const swUrl = reg.active?.scriptURL || '';
+          // Keep only if it is already our current sw.js
+          if (!swUrl.endsWith('sw.js')) await reg.unregister();
+        }
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => {
+            // Force update check on every page load
+            reg.update();
+            console.log('[LifeOS] SW registered');
+          })
+          .catch(err => console.log('[LifeOS] SW failed:', err));
+      });
+    }
+  </script>
+
+</body>
+</html>
