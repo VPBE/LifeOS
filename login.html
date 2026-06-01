@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In – LifeOS</title>
+  <meta name="theme-color" content="#8b7cf8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0b0b10;
+      --card:    #1c1c2e;
+      --card2:   #13131e;
+      --purple:  #8b7cf8;
+      --blue:    #4f9cf9;
+      --green:   #3ecf8e;
+      --muted:   #7878a0;
+      --text:    #eeeef7;
+      --border:  rgba(255,255,255,0.07);
+      --radius:  14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background-image:
+        radial-gradient(ellipse 70% 50% at 10% 0%,   rgba(139,124,248,0.14) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 40% at 90% 100%, rgba(79,156,249,0.09)  0%, transparent 65%);
+    }
+
+    /* ── Card ── */
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 40px 36px 36px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+      animation: slideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Brand ── */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+    .brand-icon { font-size: 26px; }
+    .brand-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(100deg, var(--purple), var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Headings ── */
+    .auth-heading {
+      font-family: 'Syne', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+    .auth-sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    /* ── Form ── */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+    }
+    .form-group input {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-group input:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(139,124,248,0.15);
+    }
+    .form-group input::placeholder { color: var(--muted); }
+
+    /* ── Error banner ── */
+    .error-msg {
+      display: none;
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+    .error-msg.show { display: block; }
+
+    /* ── Submit button ── */
+    .btn-submit {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+      margin-top: 4px;
+      letter-spacing: 0.2px;
+    }
+    .btn-submit:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(139,124,248,0.4);
+    }
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Spinner inside button */
+    .btn-submit .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 22px 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Footer link ── */
+    .auth-footer {
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 22px;
+    }
+    .auth-footer a {
+      color: var(--purple);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .auth-footer a:hover { color: #a093ff; }
+
+    /* Forgot password */
+    .forgot-link {
+      display: block;
+      text-align: right;
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      margin-top: -10px;
+      margin-bottom: 16px;
+      transition: color 0.2s;
+    }
+    .forgot-link:hover { color: var(--purple); }
+
+    /* ── Success toast ── */
+    .toast {
+      display: none;
+      position: fixed;
+      bottom: 20px; right: 20px;
+      background: rgba(62,207,142,0.15);
+      border: 1px solid rgba(62,207,142,0.3);
+      color: var(--green);
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 9999;
+      animation: fadeIn 0.3s ease;
+    }
+    .toast.show { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 480px) {
+      .auth-card { padding: 32px 24px 28px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="auth-card">
+    <div class="brand">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-name">LifeOS</span>
+    </div>
+
+    <h1 class="auth-heading">Welcome back</h1>
+    <p class="auth-sub">Sign in to your personal dashboard.</p>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="form-group">
+      <label for="emailInput">Email</label>
+      <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email" />
+    </div>
+
+    <div class="form-group">
+      <label for="passInput">Password</label>
+      <input type="password" id="passInput" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+
+    <a href="#" class="forgot-link" id="forgotLink">Forgot password?</a>
+
+    <button class="btn-submit" id="signInBtn">Sign In</button>
+
+    <div class="auth-footer">
+      Don't have an account? <a href="signup.html">Create one</a>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+  <script>
+    if (typeof firebase === 'undefined') { console.error('[LifeOS] Firebase SDK failed to load. Check your internet connection.'); }
+    const FIREBASE_CONFIG = {
+      apiKey:            "AIzaSyBfjEADa5u7nPvSmSlIIyqcT4EjWjwOQQo",
+      authDomain:        "lifeos-f994f.firebaseapp.com",
+      projectId:         "lifeos-f994f",
+      storageBucket:     "lifeos-f994f.firebasestorage.app",
+      messagingSenderId: "516806488495",
+      appId:             "1:516806488495:web:19024bbd85b1f193c0bf5a"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    const auth = firebase.auth();
+
+    // If already logged in, skip login page
+    auth.onAuthStateChanged(user => {
+      if (user) window.location.replace('index.html');
+    });
+
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = msg;
+      el.classList.add('show');
+    }
+    function hideError() {
+      document.getElementById('errorMsg').classList.remove('show');
+    }
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+    function setLoading(loading) {
+      const btn = document.getElementById('signInBtn');
+      btn.disabled = loading;
+      btn.innerHTML = loading
+        ? '<span class="spinner"></span> Signing in…'
+        : 'Sign In';
+    }
+
+    document.getElementById('signInBtn').addEventListener('click', async () => {
+      hideError();
+      const email = document.getElementById('emailInput').value.trim();
+      const pass  = document.getElementById('passInput').value;
+      if (!email || !pass) { showError('Please enter your email and password.'); return; }
+      setLoading(true);
+      try {
+        await auth.signInWithEmailAndPassword(email, pass);
+        // onAuthStateChanged will redirect
+      } catch (err) {
+        setLoading(false);
+        const msgs = {
+          'auth/user-not-found':   'No account found with that email.',
+          'auth/wrong-password':   'Incorrect password. Try again.',
+          'auth/invalid-email':    'Please enter a valid email address.',
+          'auth/too-many-requests':'Too many attempts. Please wait a moment.',
+          'auth/invalid-credential': 'Email or password is incorrect.'
+        };
+        showError(msgs[err.code] || err.message);
+      }
+    });
+
+    // Allow Enter key to submit
+    ['emailInput','passInput'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('signInBtn').click();
+      });
+    });
+
+    // Forgot password
+    document.getElementById('forgotLink').addEventListener('click', async e => {
+      e.preventDefault();
+      const email = document.getElementById('emailInput').value.trim();
+      if (!email) { showError('Enter your email above, then click "Forgot password?".'); return; }
+      try {
+        await auth.sendPasswordResetEmail(email);
+        showToast('✓ Reset email sent — check your inbox');
+      } catch (err) {
+        showError(err.message);
+      }
+    });
+  </script>
+</body>
+</html>
