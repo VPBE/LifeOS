@@ -354,7 +354,7 @@ a { text-decoration: none; color: inherit; }
 .module-card.creator:hover      { border-color: rgba(224,102,160,0.4); }
 .module-card.relationship:hover { border-color: rgba(255,0,0,0.4); }
 .module-card.whop:hover         { border-color: rgba(249,115,22,0.4); }
-.module-card.whop:hover         { border-color: rgba(0,0,255,0.4); }
+.module-card.ai:hover           { border-color: rgba(0,0,255,0.4); }
 
 .card-icon {
   font-size: 30px;
