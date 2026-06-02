@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LifeOS – Whop Clipping</title>
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    /* =========================================
+       WHOP CLIPPING MODULE
+       Accent: #f97316 (orange) — content hustle energy
+       ========================================= */
+
+    :root {
+      --whop: #f97316;
+      --whop-dim: rgba(249,115,22,0.15);
+      --whop-border: rgba(249,115,22,0.3);
+      --whop2: #fb923c;
+    }
+
+    /* Tab bar */
+    .tab-bar {
+      display: flex;
+      gap: 6px;
+      padding: 0 28px 20px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: transparent;
+      color: #8888aa;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: var(--font-body);
+    }
+
+    .tab-btn:hover {
+      background: rgba(255,255,255,0.06);
+      color: #f0f0f7;
+    }
+
+    .tab-btn.active {
+      background: var(--whop);
+      border-color: var(--whop);
+      color: #0f0f13;
+      font-weight: 700;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Section card */
+    .section-card {
+      background: #1a1a24;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .section-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      font-family: var(--font-display);
+    }
+
+    /* Input row */
+    .input-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .input-row input,
+    .input-row select,
+    .input-row textarea {
+      flex: 1;
+      min-width: 130px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: #0f0f13;
+      color: #f0f0f7;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: var(--font-body);
+    }
+
+    .input-row input:focus,
+    .input-row select:focus,
+    .input-row textarea:focus { border-color: var(--whop); }
+
+    .input-row textarea { min-height: 80px; resize: vertical; }
+
+    .btn-add {
+      padding: 9px 20px;
+      background: var(--whop);
+      color: #0f0f13;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      white-space: nowrap;
+      font-family: var(--font-body);
+    }
+    .btn-add:hover { opacity: 0.85; transform: translateY(-1px); }
+
+    .btn-delete {
+      background: none;
+      border: none;
+      color: #8888aa;
+      font-size: 17px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+      line-height: 1;
+    }
+    .btn-delete:hover {
+      color: #ff6b6b;
+      background: rgba(255,107,107,0.1);
+    }
+
+    /* Data list items */
+    .data-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .data-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 13px 14px;
+      background: #0f0f13;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06);
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    .data-item:hover { border-color: var(--whop-border); }
+
+    .data-item-info { flex: 1; min-width: 0; }
+    .data-item-title { font-weight: 600; margin-bottom: 3px; word-break: break-word; }
+    .data-item-sub   { font-size: 12px; color: #8888aa; line-height: 1.45; }
+
+    .empty-msg {
+      text-align: center;
+      padding: 28px 0;
+      color: #8888aa;
+      font-size: 14px;
+    }
+
+    /* =========================================
+       STATS STRIP (top of page)
+       ========================================= */
+    .whop-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      padding: 0 28px 20px;
+    }
+
+    .whop-stat {
+      background: #1a1a24;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 16px 14px;
+      text-align: center;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .whop-stat:hover { border-color: var(--whop-border); transform: translateY(-2px); }
+
+    .whop-stat-value {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--whop);
+      letter-spacing: -1px;
+    }
+
+    .whop-stat-label {
+      font-size: 10.5px;
+      color: #8888aa;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      font-weight: 600;
+    }
+
+    /* =========================================
+       IDEAS – Kanban-style status badges
+       ========================================= */
+    .status-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .status-raw       { background: rgba(120,120,160,0.18); color: #9999bb; }
+    .status-scripting { background: rgba(249,115,22,0.2);   color: #fb923c; }
+    .status-filming   { background: rgba(79,156,249,0.2);   color: #60a5fa; }
+    .status-editing   { background: rgba(139,124,248,0.2);  color: #a78bfa; }
+    .status-uploaded  { background: rgba(62,207,142,0.2);   color: #34d399; }
+    .status-viral     { background: rgba(245,166,35,0.2);   color: #fbbf24; }
+
+    /* Priority dot */
+    .priority-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+    .prio-fire   { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+    .prio-normal { background: #f97316; }
+    .prio-chill  { background: #3ecf8e; }
+
+    /* =========================================
+       SCRIPTS / NOTES – rich text area
+       ========================================= */
+    .script-card {
+      background: #0f0f13;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 10px;
+      transition: border-color 0.2s;
+      cursor: pointer;
+      position: relative;
+    }
+    .script-card:hover { border-color: var(--whop-border); }
+
+    .script-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .script-title {
+      font-weight: 700;
+      font-size: 14px;
+      flex: 1;
+      font-family: var(--font-display);
+    }
+
+    .script-body {
+      font-size: 13px;
+      color: #aaaacc;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 120px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .script-body.expanded { max-height: none; }
+
+    .script-fade {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 40px;
+      background: linear-gradient(transparent, #0f0f13);
+    }
+
+    .script-expand-btn {
+      font-size: 12px;
+      color: var(--whop);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 0;
+      font-family: var(--font-body);
+      font-weight: 600;
+    }
+
+    /* Tag chips */
+    .tag-chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--whop-dim);
+      color: var(--whop);
+      margin-right: 4px;
+      margin-bottom: 2px;
+    }
+
+    /* =========================================
+       UPLOAD TRACKER — clips table
+       ========================================= */
+    .upload-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .upload-table th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #8888aa;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .upload-table td {
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: #ddddf0;
+      vertical-align: middle;
+    }
+    .upload-table tr:last-child td { border-bottom: none; }
+    .upload-table tr:hover td { background: rgba(249,115,22,0.04); }
+
+    .platform-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .plat-tiktok  { background: rgba(0,0,0,0.4); color: #ee1d52; border: 1px solid rgba(238,29,82,0.3); }
+    .plat-yt      { background: rgba(255,0,0,0.12); color: #ff4444; border: 1px solid rgba(255,0,0,0.3); }
+    .plat-ig      { background: rgba(196,48,143,0.15); color: #e1306c; border: 1px solid rgba(225,48,108,0.3); }
+    .plat-x       { background: rgba(255,255,255,0.07); color: #ddd; border: 1px solid rgba(255,255,255,0.15); }
+
+    /* Views/earnings input inline */
+    .inline-input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px dashed rgba(255,255,255,0.15);
+      color: #f0f0f7;
+      font-size: 13px;
+      width: 80px;
+      padding: 2px 4px;
+      outline: none;
+      font-family: var(--font-body);
+      transition: border-color 0.2s;
+    }
+    .inline-input:focus { border-color: var(--whop); }
+
+    /* =========================================
+       EARNINGS
+       ========================================= */
+    .earn-total {
+      font-family: var(--font-display);
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--whop);
+      letter-spacing: -2px;
+      text-shadow: 0 0 30px rgba(249,115,22,0.4);
+    }
+
+    .earn-sub {
+      font-size: 13px;
+      color: #8888aa;
+      margin-top: 4px;
+    }
+
+    .earn-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: #0f0f13;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 8px;
+    }
+
+    .earn-amount {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 800;
+      color: #3ecf8e;
+      min-width: 80px;
+    }
+
+    /* =========================================
+       IDEAS BOARD — inline editable note cards
+       ========================================= */
+    .idea-card {
+      background: #0f0f13;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 10px;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .idea-card:hover { border-color: var(--whop-border); transform: translateX(3px); }
+
+    .idea-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .idea-title {
+      font-weight: 700;
+      font-size: 14px;
+      flex: 1;
+      font-family: var(--font-display);
+    }
+
+    .idea-hook {
+      font-size: 13px;
+      color: #aaaacc;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    .idea-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .idea-date {
+      font-size: 11px;
+      color: #666688;
+      margin-left: auto;
+    }
+
+    /* Modal overlay for full edit */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-bg.open { display: flex; }
+
+    .modal-box {
+      background: #1a1a24;
+      border: 1px solid rgba(249,115,22,0.25);
+      border-radius: 18px;
+      padding: 28px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      animation: fadeUp 0.3s ease both;
+    }
+
+    .modal-box h2 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 18px;
+      color: var(--whop);
+    }
+
+    .modal-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .modal-field label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #8888aa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .modal-field input,
+    .modal-field select,
+    .modal-field textarea {
+      background: #0f0f13;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #f0f0f7;
+      font-family: var(--font-body);
+      font-size: 14px;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .modal-field input:focus,
+    .modal-field select:focus,
+    .modal-field textarea:focus { border-color: var(--whop); }
+
+    .modal-field textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 18px;
+    }
+
+    .btn-cancel {
+      padding: 9px 18px;
+      background: rgba(255,255,255,0.06);
+      color: #ccc;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: background 0.2s;
+    }
+    .btn-cancel:hover { background: rgba(255,255,255,0.1); }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .tab-bar { padding: 0 16px 16px; }
+      .whop-stats { padding: 0 16px 16px; }
+      .input-row { flex-direction: column; }
+      .input-row input, .input-row select { width: 100%; }
+      .btn-add { width: 100%; }
+      .upload-table { font-size: 12px; }
+      .upload-table th, .upload-table td { padding: 10px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-name">LifeOS</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="../index.html"      class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+      <a href="school.html"        class="nav-item"><span class="nav-icon">🎓</span><span class="nav-label">School</span></a>
+      <a href="productivity.html"  class="nav-item"><span class="nav-icon">✅</span><span class="nav-label">Productivity</span></a>
+      <a href="notes.html"         class="nav-item"><span class="nav-icon">📝</span><span class="nav-label">Notes</span></a>
+      <a href="finance.html"       class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Finance</span></a>
+      <a href="creator.html"       class="nav-item"><span class="nav-icon">🎬</span><span class="nav-label">Creator</span></a>
+      <a href="relationship.html"  class="nav-item"><span class="nav-icon">💕</span><span class="nav-label">Relationship</span></a>
+      <a href="whop.html"          class="nav-item active"><span class="nav-icon">🟠</span><span class="nav-label">Whop Clipping</span></a>
+      <a href="ai.html"           class="nav-item"><span class="nav-icon">🤖</span><span class="nav-label">AI Assistant</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="sidebarUserName" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 2px;"></div>
+      <button onclick="lifeOSSignOut()" style="background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.25);color:#f87171;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;width:100%;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,80,80,0.2)'" onmouseout="this.style.background='rgba(255,80,80,0.1)'">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main-content">
+
+    <header class="topbar">
+      <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">☰</button>
+      <div class="topbar-title">🟠 Whop Clipping</div>
+      <div class="topbar-date" id="currentDate"></div>
+    </header>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+      <h1>Whop Clipping Hub</h1>
+      <p>Organize ideas, scripts, uploads, and track your earnings — all in one place.</p>
+    </div>
+
+    <!-- QUICK STATS -->
+    <div class="whop-stats">
+      <div class="whop-stat">
+        <div class="whop-stat-value" id="statIdeas">0</div>
+        <div class="whop-stat-label">Ideas</div>
+      </div>
+      <div class="whop-stat">
+        <div class="whop-stat-value" id="statUploads">0</div>
+        <div class="whop-stat-label">Clips Uploaded</div>
+      </div>
+      <div class="whop-stat">
+        <div class="whop-stat-value" id="statScripts">0</div>
+        <div class="whop-stat-label">Scripts</div>
+      </div>
+      <div class="whop-stat">
+        <div class="whop-stat-value" id="statEarnings">$0</div>
+        <div class="whop-stat-label">Total Earned</div>
+      </div>
+    </div>
+
+    <!-- TAB BAR -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('ideas', this)">💡 Ideas</button>
+      <button class="tab-btn"        onclick="switchTab('scripts', this)">📜 Scripts</button>
+      <button class="tab-btn"        onclick="switchTab('uploads', this)">📤 Upload Tracker</button>
+      <button class="tab-btn"        onclick="switchTab('earnings', this)">💸 Earnings</button>
+      <button class="tab-btn"        onclick="switchTab('notes', this)">🗒️ Notes</button>
+    </div>
+
+    <div class="module-body">
+
+      <!-- ========================
+           TAB 1: IDEAS
+           ======================== -->
+      <div id="tab-ideas" class="tab-panel active">
+
+        <div class="section-card">
+          <h3>New Idea</h3>
+          <div class="input-row">
+            <input type="text" id="ideaTitle" placeholder="Video / clip concept title" style="flex:2;" />
+            <select id="ideaStatus">
+              <option value="raw">💭 Raw Idea</option>
+              <option value="scripting">✍️ Scripting</option>
+              <option value="filming">🎥 Filming</option>
+              <option value="editing">✂️ Editing</option>
+              <option value="uploaded">✅ Uploaded</option>
+              <option value="viral">🔥 Viral</option>
+            </select>
+            <select id="ideaPriority">
+              <option value="fire">🔴 Fire — do ASAP</option>
+              <option value="normal">🟠 Normal</option>
+              <option value="chill">🟢 Chill — someday</option>
+            </select>
+          </div>
+          <div class="input-row">
+            <input type="text" id="ideaHook" placeholder="Hook / angle (why will people watch?)" style="flex:2;" />
+            <input type="text" id="ideaTags" placeholder="Tags: e.g. shorts, whop, money" />
+            <button class="btn-add" onclick="addIdea()">+ Add Idea</button>
+          </div>
+        </div>
+
+        <!-- Filter row -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <button class="tab-btn active" id="if-all"        onclick="filterIdeas('all',this)">All</button>
+          <button class="tab-btn"        id="if-raw"        onclick="filterIdeas('raw',this)">💭 Raw</button>
+          <button class="tab-btn"        id="if-scripting"  onclick="filterIdeas('scripting',this)">✍️ Scripting</button>
+          <button class="tab-btn"        id="if-filming"    onclick="filterIdeas('filming',this)">🎥 Filming</button>
+          <button class="tab-btn"        id="if-editing"    onclick="filterIdeas('editing',this)">✂️ Editing</button>
+          <button class="tab-btn"        id="if-fire"       onclick="filterIdeas('fire',this)">🔴 Fire</button>
+        </div>
+
+        <div id="ideaList"></div>
+
+      </div>
+
+      <!-- ========================
+           TAB 2: SCRIPTS
+           ======================== -->
+      <div id="tab-scripts" class="tab-panel">
+
+        <div class="section-card">
+          <h3>New Script / Hook Template</h3>
+          <div class="input-row">
+            <input type="text" id="scriptTitle" placeholder="Script title (e.g. 'Whop income reveal')" style="flex:2;" />
+            <select id="scriptType">
+              <option value="hook">🪝 Hook</option>
+              <option value="script">📜 Full Script</option>
+              <option value="outline">📋 Outline</option>
+              <option value="cta">📢 CTA Template</option>
+            </select>
+          </div>
+          <div class="input-row">
+            <textarea id="scriptBody" placeholder="Write your script, hook, or outline here…&#10;&#10;Hook: [attention grabber]&#10;Body: [main content]&#10;CTA: [call to action]"></textarea>
+          </div>
+          <div class="input-row">
+            <input type="text" id="scriptTags" placeholder="Tags: e.g. money, whop, reaction" />
+            <button class="btn-add" onclick="addScript()">+ Save Script</button>
+          </div>
+        </div>
+
+        <div id="scriptList"></div>
+
+      </div>
+
+      <!-- ========================
+           TAB 3: UPLOAD TRACKER
+           ======================== -->
+      <div id="tab-uploads" class="tab-panel">
+
+        <div class="section-card">
+          <h3>Log a Clip Upload</h3>
+          <div class="input-row">
+            <input type="text" id="upTitle"  placeholder="Clip title / description" style="flex:2;" />
+            <select id="upPlatform">
+              <option value="tiktok">TikTok</option>
+              <option value="yt">YouTube Shorts</option>
+              <option value="ig">Instagram Reels</option>
+              <option value="x">X / Twitter</option>
+            </select>
+            <input type="date" id="upDate" />
+          </div>
+          <div class="input-row">
+            <input type="number" id="upViews"    placeholder="Views (optional)" min="0" />
+            <input type="number" id="upEarnings" placeholder="Earnings $ (optional)" min="0" step="0.01" />
+            <input type="text"   id="upLink"     placeholder="Post URL (optional)" />
+            <button class="btn-add" onclick="addUpload()">+ Log Upload</button>
+          </div>
+        </div>
+
+        <!-- Upload log table -->
+        <div class="section-card" style="overflow-x:auto;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h3 style="margin:0;">All Uploads</h3>
+            <span id="uploadCount" style="font-size:12px;color:#8888aa;"></span>
+          </div>
+          <table class="upload-table" id="uploadTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Title</th>
+                <th>Platform</th>
+                <th>Views</th>
+                <th>Earnings</th>
+                <th>Link</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="uploadBody">
+              <tr><td colspan="7" style="text-align:center;padding:28px;color:#8888aa;">No uploads logged yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- ========================
+           TAB 4: EARNINGS
+           ======================== -->
+      <div id="tab-earnings" class="tab-panel">
+
+        <!-- Big total -->
+        <div class="section-card" style="text-align:center;padding:32px;">
+          <div class="earn-total" id="earnTotal">$0.00</div>
+          <div class="earn-sub">Total earnings tracked</div>
+          <div style="display:flex;justify-content:center;gap:32px;margin-top:20px;flex-wrap:wrap;">
+            <div>
+              <div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:#3ecf8e;" id="earnThisMonth">$0.00</div>
+              <div style="font-size:11px;color:#8888aa;margin-top:3px;text-transform:uppercase;letter-spacing:0.5px;">This Month</div>
+            </div>
+            <div>
+              <div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:#60a5fa;" id="earnThisWeek">$0.00</div>
+              <div style="font-size:11px;color:#8888aa;margin-top:3px;text-transform:uppercase;letter-spacing:0.5px;">This Week</div>
+            </div>
+            <div>
+              <div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:#a78bfa;" id="earnAvgPerClip">$0.00</div>
+              <div style="font-size:11px;color:#8888aa;margin-top:3px;text-transform:uppercase;letter-spacing:0.5px;">Avg / Clip</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual earnings entry (outside of uploads) -->
+        <div class="section-card">
+          <h3>Log a Payment</h3>
+          <div class="input-row">
+            <input type="text"   id="earningSource"  placeholder="Source (e.g. Whop payout, brand deal)" style="flex:2;" />
+            <input type="number" id="earningAmount"   placeholder="Amount $" min="0" step="0.01" />
+            <input type="date"   id="earningDate" />
+            <button class="btn-add" onclick="addEarning()">+ Add</button>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <h3>Payment History</h3>
+          <div id="earningList"></div>
+        </div>
+
+      </div>
+
+      <!-- ========================
+           TAB 5: NOTES
+           ======================== -->
+      <div id="tab-notes" class="tab-panel">
+
+        <div class="section-card">
+          <h3>Quick Note</h3>
+          <div class="input-row">
+            <input type="text" id="whopNoteTitle" placeholder="Note title" />
+          </div>
+          <div class="input-row">
+            <textarea id="whopNoteBody" placeholder="Brain dump — strategies, what's working, observations, clip ideas, anything…" style="min-height:100px;"></textarea>
+          </div>
+          <div class="input-row" style="justify-content:flex-end;">
+            <button class="btn-add" onclick="addWhopNote()">+ Save Note</button>
+          </div>
+        </div>
+
+        <div id="whopNoteList"></div>
+
+      </div>
+
+    </div><!-- end .module-body -->
+  </main>
+
+  <!-- ===== IDEA EDIT MODAL ===== -->
+  <div class="modal-bg" id="ideaModal">
+    <div class="modal-box">
+      <h2>✏️ Edit Idea</h2>
+      <input type="hidden" id="editIdeaId" />
+
+      <div class="modal-field">
+        <label>Title</label>
+        <input type="text" id="editIdeaTitle" placeholder="Clip / video concept" />
+      </div>
+      <div class="modal-field">
+        <label>Hook / Angle</label>
+        <textarea id="editIdeaHook" placeholder="Why will people watch this? What's the hook?"></textarea>
+      </div>
+      <div class="modal-field">
+        <label>Status</label>
+        <select id="editIdeaStatus">
+          <option value="raw">💭 Raw Idea</option>
+          <option value="scripting">✍️ Scripting</option>
+          <option value="filming">🎥 Filming</option>
+          <option value="editing">✂️ Editing</option>
+          <option value="uploaded">✅ Uploaded</option>
+          <option value="viral">🔥 Viral</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Priority</label>
+        <select id="editIdeaPriority">
+          <option value="fire">🔴 Fire — do ASAP</option>
+          <option value="normal">🟠 Normal</option>
+          <option value="chill">🟢 Chill — someday</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Tags (comma separated)</label>
+        <input type="text" id="editIdeaTags" placeholder="shorts, whop, money, reaction" />
+      </div>
+      <div class="modal-field">
+        <label>Notes / Extra details</label>
+        <textarea id="editIdeaNotes" placeholder="Extra notes, references, inspiration links…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeIdeaModal()">Cancel</button>
+        <button class="btn-add"    onclick="saveIdeaEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script edit modal -->
+  <div class="modal-bg" id="scriptModal">
+    <div class="modal-box">
+      <h2>✏️ Edit Script</h2>
+      <input type="hidden" id="editScriptId" />
+      <div class="modal-field">
+        <label>Title</label>
+        <input type="text" id="editScriptTitle" />
+      </div>
+      <div class="modal-field">
+        <label>Type</label>
+        <select id="editScriptType">
+          <option value="hook">🪝 Hook</option>
+          <option value="script">📜 Full Script</option>
+          <option value="outline">📋 Outline</option>
+          <option value="cta">📢 CTA Template</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Content</label>
+        <textarea id="editScriptBody" style="min-height:200px;"></textarea>
+      </div>
+      <div class="modal-field">
+        <label>Tags</label>
+        <input type="text" id="editScriptTags" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeScriptModal()">Cancel</button>
+        <button class="btn-add"    onclick="saveScriptEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="../firebase.js"></script>
+  <script src="../app.js"></script>
+
+  <script>
+    // =========================================
+    // WHOP CLIPPING MODULE – JS
+    // =========================================
+
+    const KEYS = {
+      ideas:    'whop_ideas',
+      scripts:  'whop_scripts',
+      uploads:  'whop_uploads',
+      earnings: 'whop_earnings',
+      notes:    'whop_notes'
+    };
+
+    async function load(k)       { return await lifeOSLoad(k, []); }
+    async function save(k, data) { await lifeOSSave(k, data); }
+
+    function todayStr() { return new Date().toISOString().split('T')[0]; }
+    function fmtDate(d) {
+      if (!d) return '';
+      return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    }
+    function fmtMoney(n) { return '$' + (parseFloat(n)||0).toFixed(2); }
+
+    // =========================================
+    // TAB SWITCHING
+    // =========================================
+    function switchTab(name, btn) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-bar .tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    // =========================================
+    // STATS
+    // =========================================
+    async function refreshStats() {
+      const [ideas, scripts, uploads, earnings] = await Promise.all([
+        load(KEYS.ideas), load(KEYS.scripts),
+        load(KEYS.uploads), load(KEYS.earnings)
+      ]);
+
+      document.getElementById('statIdeas').textContent   = ideas.length;
+      document.getElementById('statUploads').textContent = uploads.length;
+      document.getElementById('statScripts').textContent = scripts.length;
+
+      const fromUploads  = uploads.reduce((s,u)  => s + (parseFloat(u.earnings)||0), 0);
+      const fromEarnings = earnings.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+      const total = fromUploads + fromEarnings;
+      document.getElementById('statEarnings').textContent = '$' + total.toFixed(0);
+    }
+
+    // =========================================
+    // IDEAS
+    // =========================================
+    let ideaFilter = 'all';
+
+    const STATUS_LABELS = {
+      raw:'💭 Raw', scripting:'✍️ Scripting',
+      filming:'🎥 Filming', editing:'✂️ Editing',
+      uploaded:'✅ Uploaded', viral:'🔥 Viral'
+    };
+    const PRIO_LABELS = { fire:'🔴', normal:'🟠', chill:'🟢' };
+
+    async function addIdea() {
+      const title    = document.getElementById('ideaTitle').value.trim();
+      const hook     = document.getElementById('ideaHook').value.trim();
+      const status   = document.getElementById('ideaStatus').value;
+      const priority = document.getElementById('ideaPriority').value;
+      const tagsRaw  = document.getElementById('ideaTags').value.trim();
+
+      if (!title) { alert('Please enter an idea title.'); return; }
+
+      const ideas = await load(KEYS.ideas);
+      ideas.unshift({
+        id:       Date.now(),
+        title, hook, status, priority,
+        tags:     tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [],
+        notes:    '',
+        created:  todayStr()
+      });
+      await save(KEYS.ideas, ideas);
+
+      ['ideaTitle','ideaHook','ideaTags'].forEach(id => document.getElementById(id).value = '');
+      await renderIdeas();
+      await refreshStats();
+    }
+
+    async function deleteIdea(id) {
+      if (!confirm('Delete this idea?')) return;
+      await save(KEYS.ideas, (await load(KEYS.ideas)).filter(i => i.id !== id));
+      await renderIdeas();
+      await refreshStats();
+    }
+
+    function filterIdeas(f, btn) {
+      ideaFilter = f;
+      document.querySelectorAll('[id^="if-"]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderIdeas();
+    }
+
+    async function renderIdeas() {
+      const container = document.getElementById('ideaList');
+      let ideas = await load(KEYS.ideas);
+
+      if (ideaFilter !== 'all' && ideaFilter !== 'fire') {
+        ideas = ideas.filter(i => i.status === ideaFilter);
+      } else if (ideaFilter === 'fire') {
+        ideas = ideas.filter(i => i.priority === 'fire');
+      }
+
+      if (ideas.length === 0) {
+        container.innerHTML = '<div class="empty-msg">No ideas found. Start brainstorming!</div>';
+        return;
+      }
+
+      container.innerHTML = ideas.map(idea => `
+        <div class="idea-card" onclick="openIdeaModal(${idea.id})" title="Click to edit">
+          <div class="idea-header">
+            <div class="priority-dot prio-${idea.priority}"></div>
+            <div class="idea-title">${idea.title}</div>
+            <span class="status-badge status-${idea.status}">${STATUS_LABELS[idea.status] || idea.status}</span>
+            <button class="btn-delete" onclick="event.stopPropagation();deleteIdea(${idea.id})">✕</button>
+          </div>
+          ${idea.hook ? `<div class="idea-hook">${idea.hook}</div>` : ''}
+          ${idea.notes ? `<div class="idea-hook" style="color:#666688;font-size:12px;margin-top:6px;">${idea.notes}</div>` : ''}
+          <div class="idea-meta">
+            ${idea.tags.map(t => `<span class="tag-chip">${t}</span>`).join('')}
+            <span class="idea-date">${fmtDate(idea.created)}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Idea Modal
+    async function openIdeaModal(id) {
+      const ideas = await load(KEYS.ideas);
+      const idea  = ideas.find(i => i.id === id);
+      if (!idea) return;
+
+      document.getElementById('editIdeaId').value        = id;
+      document.getElementById('editIdeaTitle').value     = idea.title;
+      document.getElementById('editIdeaHook').value      = idea.hook || '';
+      document.getElementById('editIdeaStatus').value    = idea.status;
+      document.getElementById('editIdeaPriority').value  = idea.priority;
+      document.getElementById('editIdeaTags').value      = (idea.tags||[]).join(', ');
+      document.getElementById('editIdeaNotes').value     = idea.notes || '';
+
+      document.getElementById('ideaModal').classList.add('open');
+    }
+
+    function closeIdeaModal() {
+      document.getElementById('ideaModal').classList.remove('open');
+    }
+
+    async function saveIdeaEdit() {
+      const id     = parseInt(document.getElementById('editIdeaId').value);
+      const ideas  = await load(KEYS.ideas);
+      const idx    = ideas.findIndex(i => i.id === id);
+      if (idx === -1) return;
+
+      ideas[idx] = {
+        ...ideas[idx],
+        title:    document.getElementById('editIdeaTitle').value.trim(),
+        hook:     document.getElementById('editIdeaHook').value.trim(),
+        status:   document.getElementById('editIdeaStatus').value,
+        priority: document.getElementById('editIdeaPriority').value,
+        tags:     document.getElementById('editIdeaTags').value.split(',').map(t=>t.trim()).filter(Boolean),
+        notes:    document.getElementById('editIdeaNotes').value.trim()
+      };
+      await save(KEYS.ideas, ideas);
+      closeIdeaModal();
+      await renderIdeas();
+    }
+
+    // =========================================
+    // SCRIPTS
+    // =========================================
+    const TYPE_LABELS = { hook:'🪝 Hook', script:'📜 Full Script', outline:'📋 Outline', cta:'📢 CTA' };
+
+    async function addScript() {
+      const title  = document.getElementById('scriptTitle').value.trim();
+      const body   = document.getElementById('scriptBody').value.trim();
+      const type   = document.getElementById('scriptType').value;
+      const tagsRaw= document.getElementById('scriptTags').value.trim();
+
+      if (!title || !body) { alert('Please enter a title and content.'); return; }
+
+      const scripts = await load(KEYS.scripts);
+      scripts.unshift({
+        id:      Date.now(),
+        title, body, type,
+        tags:    tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [],
+        created: todayStr()
+      });
+      await save(KEYS.scripts, scripts);
+
+      ['scriptTitle','scriptBody','scriptTags'].forEach(id => document.getElementById(id).value = '');
+      await renderScripts();
+      await refreshStats();
+    }
+
+    async function deleteScript(id) {
+      if (!confirm('Delete this script?')) return;
+      await save(KEYS.scripts, (await load(KEYS.scripts)).filter(s => s.id !== id));
+      await renderScripts();
+      await refreshStats();
+    }
+
+    async function openScriptModal(id) {
+      const scripts = await load(KEYS.scripts);
+      const s = scripts.find(x => x.id === id);
+      if (!s) return;
+
+      document.getElementById('editScriptId').value    = id;
+      document.getElementById('editScriptTitle').value = s.title;
+      document.getElementById('editScriptType').value  = s.type;
+      document.getElementById('editScriptBody').value  = s.body;
+      document.getElementById('editScriptTags').value  = (s.tags||[]).join(', ');
+
+      document.getElementById('scriptModal').classList.add('open');
+    }
+
+    function closeScriptModal() {
+      document.getElementById('scriptModal').classList.remove('open');
+    }
+
+    async function saveScriptEdit() {
+      const id      = parseInt(document.getElementById('editScriptId').value);
+      const scripts = await load(KEYS.scripts);
+      const idx     = scripts.findIndex(s => s.id === id);
+      if (idx === -1) return;
+
+      scripts[idx] = {
+        ...scripts[idx],
+        title: document.getElementById('editScriptTitle').value.trim(),
+        type:  document.getElementById('editScriptType').value,
+        body:  document.getElementById('editScriptBody').value.trim(),
+        tags:  document.getElementById('editScriptTags').value.split(',').map(t=>t.trim()).filter(Boolean)
+      };
+      await save(KEYS.scripts, scripts);
+      closeScriptModal();
+      await renderScripts();
+    }
+
+    async function renderScripts() {
+      const container = document.getElementById('scriptList');
+      const scripts   = await load(KEYS.scripts);
+
+      if (scripts.length === 0) {
+        container.innerHTML = '<div class="empty-msg">No scripts yet. Write your first hook!</div>';
+        return;
+      }
+
+      container.innerHTML = scripts.map(s => {
+        const isLong = s.body.length > 200;
+        return `
+          <div class="script-card">
+            <div class="script-card-header">
+              <span class="status-badge" style="background:var(--whop-dim);color:var(--whop);">${TYPE_LABELS[s.type]||s.type}</span>
+              <div class="script-title">${s.title}</div>
+              <button class="btn-delete" style="margin-left:auto;" onclick="event.stopPropagation();deleteScript(${s.id})">✕</button>
+            </div>
+            <div class="script-body" id="sb-${s.id}">
+              ${s.body.replace(/\n/g,'<br>')}
+              ${isLong ? `<div class="script-fade" id="sf-${s.id}"></div>` : ''}
+            </div>
+            ${isLong ? `<button class="script-expand-btn" id="se-${s.id}" onclick="toggleScriptExpand(${s.id})">Show more ↓</button>` : ''}
+            <div style="display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;">
+              ${s.tags.map(t=>`<span class="tag-chip">${t}</span>`).join('')}
+              <span style="font-size:11px;color:#666688;margin-left:auto;">${fmtDate(s.created)}</span>
+              <button class="btn-add" style="padding:5px 12px;font-size:12px;" onclick="openScriptModal(${s.id})">✏️ Edit</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleScriptExpand(id) {
+      const body = document.getElementById('sb-' + id);
+      const fade = document.getElementById('sf-' + id);
+      const btn  = document.getElementById('se-' + id);
+      body.classList.toggle('expanded');
+      if (fade) fade.style.display = body.classList.contains('expanded') ? 'none' : 'block';
+      btn.textContent = body.classList.contains('expanded') ? 'Show less ↑' : 'Show more ↓';
+    }
+
+    // =========================================
+    // UPLOADS
+    // =========================================
+    async function addUpload() {
+      const title    = document.getElementById('upTitle').value.trim();
+      const platform = document.getElementById('upPlatform').value;
+      const date     = document.getElementById('upDate').value || todayStr();
+      const views    = document.getElementById('upViews').value;
+      const earnings = document.getElementById('upEarnings').value;
+      const link     = document.getElementById('upLink').value.trim();
+
+      if (!title) { alert('Please enter a clip title.'); return; }
+
+      const uploads = await load(KEYS.uploads);
+      uploads.unshift({ id: Date.now(), title, platform, date, views, earnings, link });
+      await save(KEYS.uploads, uploads);
+
+      ['upTitle','upViews','upEarnings','upLink'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('upDate').value = '';
+      await renderUploads();
+      await refreshStats();
+    }
+
+    async function deleteUpload(id) {
+      await save(KEYS.uploads, (await load(KEYS.uploads)).filter(u => u.id !== id));
+      await renderUploads();
+      await refreshStats();
+    }
+
+    async function updateUploadField(id, field, value) {
+      const uploads = (await load(KEYS.uploads)).map(u => {
+        if (u.id === id) u[field] = value;
+        return u;
+      });
+      await save(KEYS.uploads, uploads);
+      await refreshStats();
+    }
+
+    const PLAT_CLASS = { tiktok:'plat-tiktok', yt:'plat-yt', ig:'plat-ig', x:'plat-x' };
+    const PLAT_LABEL = { tiktok:'TikTok', yt:'YT Shorts', ig:'Instagram', x:'X / Twitter' };
+
+    async function renderUploads() {
+      const tbody   = document.getElementById('uploadBody');
+      const uploads = await load(KEYS.uploads);
+
+      document.getElementById('uploadCount').textContent = `${uploads.length} clips logged`;
+
+      if (uploads.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:28px;color:#8888aa;">No uploads logged yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = uploads.map(u => `
+        <tr>
+          <td style="white-space:nowrap;color:#8888aa;">${fmtDate(u.date)}</td>
+          <td><span style="font-weight:600;">${u.title}</span></td>
+          <td><span class="platform-badge ${PLAT_CLASS[u.platform]||''}">${PLAT_LABEL[u.platform]||u.platform}</span></td>
+          <td>
+            <input class="inline-input" type="number" value="${u.views||''}" placeholder="—"
+                   onblur="updateUploadField(${u.id},'views',this.value)"
+                   onkeydown="if(event.key==='Enter')this.blur()" />
+          </td>
+          <td>
+            <input class="inline-input" type="number" value="${u.earnings||''}" placeholder="—" step="0.01"
+                   onblur="updateUploadField(${u.id},'earnings',this.value)"
+                   onkeydown="if(event.key==='Enter')this.blur()" />
+          </td>
+          <td>
+            ${u.link
+              ? `<a href="${u.link}" target="_blank" style="color:var(--whop);font-size:12px;">🔗 View</a>`
+              : '<span style="color:#555566;">—</span>'}
+          </td>
+          <td><button class="btn-delete" onclick="deleteUpload(${u.id})">✕</button></td>
+        </tr>
+      `).join('');
+    }
+
+    // =========================================
+    // EARNINGS
+    // =========================================
+    async function addEarning() {
+      const source = document.getElementById('earningSource').value.trim();
+      const amount = document.getElementById('earningAmount').value;
+      const date   = document.getElementById('earningDate').value || todayStr();
+
+      if (!source || !amount) { alert('Please enter source and amount.'); return; }
+
+      const earnings = await load(KEYS.earnings);
+      earnings.unshift({ id: Date.now(), source, amount: parseFloat(amount), date });
+      await save(KEYS.earnings, earnings);
+
+      ['earningSource','earningAmount','earningDate'].forEach(id => document.getElementById(id).value = '');
+      await renderEarnings();
+      await refreshStats();
+    }
+
+    async function deleteEarning(id) {
+      await save(KEYS.earnings, (await load(KEYS.earnings)).filter(e => e.id !== id));
+      await renderEarnings();
+      await refreshStats();
+    }
+
+    async function renderEarnings() {
+      const [uploads, earnings] = await Promise.all([
+        load(KEYS.uploads), load(KEYS.earnings)
+      ]);
+
+      const now         = new Date();
+      const thisMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const weekAgo     = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+
+      const fromUploads  = uploads.reduce((s,u)  => s+(parseFloat(u.earnings)||0), 0);
+      const fromEarnings = earnings.reduce((s,e) => s+(parseFloat(e.amount)||0), 0);
+      const total = fromUploads + fromEarnings;
+
+      const monthTotal = [
+        ...uploads.filter(u=>u.date&&u.date.startsWith(thisMonthStr)).map(u=>parseFloat(u.earnings)||0),
+        ...earnings.filter(e=>e.date&&e.date.startsWith(thisMonthStr)).map(e=>parseFloat(e.amount)||0)
+      ].reduce((s,v)=>s+v, 0);
+
+      const weekTotal = [
+        ...uploads.filter(u=>u.date&&new Date(u.date)>=weekAgo).map(u=>parseFloat(u.earnings)||0),
+        ...earnings.filter(e=>e.date&&new Date(e.date)>=weekAgo).map(e=>parseFloat(e.amount)||0)
+      ].reduce((s,v)=>s+v, 0);
+
+      const allClips    = uploads.filter(u => parseFloat(u.earnings) > 0);
+      const avgPerClip  = allClips.length ? fromUploads / allClips.length : 0;
+
+      document.getElementById('earnTotal').textContent     = fmtMoney(total);
+      document.getElementById('earnThisMonth').textContent = fmtMoney(monthTotal);
+      document.getElementById('earnThisWeek').textContent  = fmtMoney(weekTotal);
+      document.getElementById('earnAvgPerClip').textContent= fmtMoney(avgPerClip);
+
+      // Payment history list
+      const list = document.getElementById('earningList');
+      if (earnings.length === 0) {
+        list.innerHTML = '<div class="empty-msg">No manual payments logged yet.</div>';
+        return;
+      }
+
+      list.innerHTML = earnings.map(e => `
+        <div class="earn-row">
+          <div class="earn-amount">${fmtMoney(e.amount)}</div>
+          <div style="flex:1;">
+            <div style="font-weight:600;font-size:14px;">${e.source}</div>
+            <div style="font-size:12px;color:#8888aa;">${fmtDate(e.date)}</div>
+          </div>
+          <button class="btn-delete" onclick="deleteEarning(${e.id})">✕</button>
+        </div>
+      `).join('');
+    }
+
+    // =========================================
+    // NOTES
+    // =========================================
+    async function addWhopNote() {
+      const title = document.getElementById('whopNoteTitle').value.trim();
+      const body  = document.getElementById('whopNoteBody').value.trim();
+
+      if (!body) { alert('Write something first!'); return; }
+
+      const notes = await load(KEYS.notes);
+      notes.unshift({ id: Date.now(), title: title || 'Untitled Note', body, created: todayStr() });
+      await save(KEYS.notes, notes);
+
+      document.getElementById('whopNoteTitle').value = '';
+      document.getElementById('whopNoteBody').value  = '';
+      await renderWhopNotes();
+    }
+
+    async function deleteWhopNote(id) {
+      await save(KEYS.notes, (await load(KEYS.notes)).filter(n => n.id !== id));
+      await renderWhopNotes();
+    }
+
+    async function renderWhopNotes() {
+      const container = document.getElementById('whopNoteList');
+      const notes     = await load(KEYS.notes);
+
+      if (notes.length === 0) {
+        container.innerHTML = '<div class="empty-msg">No notes yet. Brain dump here!</div>';
+        return;
+      }
+
+      container.innerHTML = notes.map(n => `
+        <div class="script-card">
+          <div class="script-card-header">
+            <div class="script-title">${n.title}</div>
+            <span style="font-size:11px;color:#666688;margin-left:auto;">${fmtDate(n.created)}</span>
+            <button class="btn-delete" onclick="deleteWhopNote(${n.id})">✕</button>
+          </div>
+          <div style="font-size:13px;color:#aaaacc;line-height:1.65;white-space:pre-wrap;word-break:break-word;">${n.body}</div>
+        </div>
+      `).join('');
+    }
+
+    // =========================================
+    // KEYBOARD SHORTCUTS
+    // =========================================
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey||e.metaKey) && e.key === 'Enter') {
+        const active = document.querySelector('.tab-panel.active');
+        if (!active) return;
+        const id = active.id;
+        if (id === 'tab-ideas')    addIdea();
+        if (id === 'tab-scripts')  addScript();
+        if (id === 'tab-uploads')  addUpload();
+        if (id === 'tab-earnings') addEarning();
+        if (id === 'tab-notes')    addWhopNote();
+      }
+    });
+
+    // Close modals on backdrop click
+    document.getElementById('ideaModal').addEventListener('click', e => {
+      if (e.target === document.getElementById('ideaModal')) closeIdeaModal();
+    });
+    document.getElementById('scriptModal').addEventListener('click', e => {
+      if (e.target === document.getElementById('scriptModal')) closeScriptModal();
+    });
+
+    // =========================================
+    // INIT
+    // =========================================
+    (async () => {
+      await window.authReady;
+      // Set default date inputs to today
+      document.getElementById('upDate').value       = todayStr();
+      document.getElementById('earningDate').value  = todayStr();
+
+      await Promise.all([
+        renderIdeas(), renderScripts(),
+        renderUploads(), renderEarnings(),
+        renderWhopNotes(), refreshStats()
+      ]);
+    })();
+  </script>
+
+</body>
+</html>
