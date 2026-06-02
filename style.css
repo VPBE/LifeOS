@@ -339,6 +339,7 @@ a { text-decoration: none; color: inherit; }
 .module-card.creator::before      { background: var(--creator-color); box-shadow: 2px 0 12px rgba(224,102,160,0.35); }
 .module-card.relationship::before { background: var(--relationship-color); box-shadow: 2px 0 12px rgba(255,0,0,0.35); }
 .module-card.whop::before         { background: var(--whop-color); box-shadow: 2px 0 12px rgba(249,115,22,0.35); }
+.module-card.ai::before           { background: var(--ai-color); box-shadow: 2px 0 12px rgba(0,0,255,0.35); }
 
 .module-card:hover {
   transform: translateY(-4px);
@@ -353,6 +354,7 @@ a { text-decoration: none; color: inherit; }
 .module-card.creator:hover      { border-color: rgba(224,102,160,0.4); }
 .module-card.relationship:hover { border-color: rgba(255,0,0,0.4); }
 .module-card.whop:hover         { border-color: rgba(249,115,22,0.4); }
+.module-card.whop:hover         { border-color: rgba(0,0,255,0.4); }
 
 .card-icon {
   font-size: 30px;
