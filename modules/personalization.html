@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LifeOS – Personalization</title>
+  <meta name="theme-color" content="#8b7cf8" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    /* ── Personalization-specific styles ── */
+
+    /* Live preview panel */
+    .preview-shell {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin: 0 28px 24px;
+      position: relative;
+    }
+
+    .preview-label {
+      position: absolute;
+      top: 12px; left: 16px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      padding: 2px 8px;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      z-index: 10;
+    }
+
+    .preview-frame {
+      height: 180px;
+      display: flex;
+      align-items: stretch;
+      transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-sidebar-mini {
+      width: 54px;
+      background: var(--preview-bg-secondary, #13131e);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px 0;
+      gap: 10px;
+      flex-shrink: 0;
+      transition: background 0.4s;
+    }
+
+    .preview-nav-dot {
+      width: 24px; height: 6px;
+      border-radius: 3px;
+      background: var(--preview-accent, #8b7cf8);
+      opacity: 0.7;
+    }
+
+    .preview-nav-dot:first-child { opacity: 1; width: 30px; height: 6px; }
+    .preview-nav-dot.dim { background: rgba(255,255,255,0.12); opacity: 1; }
+
+    .preview-main-mini {
+      flex: 1;
+      background: var(--preview-bg-primary, #0b0b10);
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: background 0.4s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-wallpaper {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .preview-wallpaper.active { opacity: 1; }
+
+    .preview-heading-bar {
+      height: 12px;
+      width: 55%;
+      border-radius: 6px;
+      background: var(--preview-text, rgba(238,238,247,0.9));
+      position: relative;
+      z-index: 2;
+    }
+
+    .preview-sub-bar {
+      height: 7px;
+      width: 38%;
+      border-radius: 4px;
+      background: rgba(120,120,160,0.5);
+      position: relative;
+      z-index: 2;
+    }
+
+    .preview-cards-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .preview-card-mini {
+      flex: 1;
+      height: 52px;
+      border-radius: 8px;
+      background: var(--preview-bg-card, #1c1c2e);
+      border: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 7px 8px;
+      gap: 4px;
+      transition: background 0.4s;
+    }
+
+    .preview-card-mini .accent-line {
+      height: 3px;
+      width: 40%;
+      border-radius: 2px;
+      background: var(--preview-accent, #8b7cf8);
+      margin-bottom: 2px;
+    }
+
+    .preview-card-mini .card-bar {
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.1);
+      width: 80%;
+    }
+
+    .preview-card-mini .card-bar.short { width: 55%; }
+
+    /* Widget mini previews in the preview frame */
+    .preview-widget-strip {
+      display: flex;
+      gap: 6px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .preview-widget-chip {
+      height: 22px;
+      border-radius: 5px;
+      background: var(--preview-bg-card, #1c1c2e);
+      border: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px;
+      font-size: 8px;
+      color: var(--preview-accent, #8b7cf8);
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+      transition: background 0.4s;
+    }
+
+    .preview-widget-chip .dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--preview-accent, #8b7cf8);
+    }
+
+    /* ── Settings grid ── */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      padding: 0 28px 28px;
+    }
+
+    @media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) { .settings-grid { padding: 0 16px 28px; gap: 12px; } }
+
+    .settings-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 22px;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .settings-panel:nth-child(1) { animation-delay: 0.08s; }
+    .settings-panel:nth-child(2) { animation-delay: 0.14s; }
+    .settings-panel:nth-child(3) { animation-delay: 0.20s; }
+    .settings-panel:nth-child(4) { animation-delay: 0.26s; }
+
+    .panel-title {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-title-icon { font-size: 16px; }
+
+    /* ── Theme toggle ── */
+    .theme-toggle-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .theme-btn {
+      flex: 1;
+      padding: 12px 8px;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--border);
+      background: var(--bg-primary);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: border-color 0.22s, background 0.22s, transform 0.18s;
+      font-family: var(--font-body);
+    }
+
+    .theme-btn:hover { transform: translateY(-2px); }
+
+    .theme-btn.active {
+      border-color: var(--accent-purple);
+      background: rgba(139,124,248,0.1);
+    }
+
+    .theme-preview {
+      width: 100%;
+      height: 48px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      overflow: hidden;
+    }
+
+    .theme-preview-sidebar { width: 30%; background: #1a1a2e; }
+    .theme-preview-main    { flex: 1; }
+
+    .theme-btn[data-theme="dark"]  .theme-preview-main { background: #0b0b10; }
+    .theme-btn[data-theme="light"] .theme-preview-sidebar { background: #e8e8f0; }
+    .theme-btn[data-theme="light"] .theme-preview-main    { background: #f4f4f8; }
+    .theme-btn[data-theme="dim"]   .theme-preview-sidebar { background: #1e2030; }
+    .theme-btn[data-theme="dim"]   .theme-preview-main    { background: #161722; }
+
+    .theme-btn-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+
+    .theme-btn.active .theme-btn-label { color: var(--accent-purple); }
+
+    /* ── Accent colors ── */
+    .accent-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .accent-swatch {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      cursor: pointer;
+      position: relative;
+      border: 2px solid transparent;
+      transition: transform 0.18s, border-color 0.18s;
+    }
+
+    .accent-swatch:hover { transform: scale(1.12); }
+    .accent-swatch.active { border-color: #fff; }
+
+    .accent-swatch.active::after {
+      content: '✓';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+
+    .accent-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 6px;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+    }
+
+    .swatch-wrap {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Wallpapers ── */
+    .wallpaper-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .wallpaper-thumb {
+      aspect-ratio: 16/10;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      border: 2px solid transparent;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.18s, border-color 0.18s;
+    }
+
+    .wallpaper-thumb:hover { transform: scale(1.04); }
+    .wallpaper-thumb.active { border-color: var(--accent-purple); }
+    .wallpaper-thumb.active::after {
+      content: '✓';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      background: rgba(0,0,0,0.35);
+    }
+
+    .wallpaper-thumb .wp-label {
+      position: absolute;
+      bottom: 4px; left: 0; right: 0;
+      text-align: center;
+      font-size: 9px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.8);
+      letter-spacing: 0.3px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+
+    /* Custom upload button */
+    .wallpaper-upload-btn {
+      aspect-ratio: 16/10;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      border: 2px dashed var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: var(--bg-primary);
+      transition: border-color 0.22s, background 0.22s;
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .wallpaper-upload-btn:hover {
+      border-color: var(--accent-purple);
+      background: rgba(139,124,248,0.05);
+      color: var(--accent-purple);
+    }
+
+    .wallpaper-upload-icon { font-size: 18px; opacity: 0.6; }
+
+    /* ── Widgets ── */
+    .widget-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .widget-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: grab;
+      transition: background 0.18s, transform 0.18s;
+      user-select: none;
+    }
+
+    .widget-row.dragging {
+      opacity: 0.5;
+      transform: scale(0.98);
+    }
+
+    .widget-row.drag-over {
+      border-color: var(--accent-purple);
+      background: rgba(139,124,248,0.08);
+    }
+
+    .widget-drag-handle {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1;
+      cursor: grab;
+      opacity: 0.5;
+    }
+
+    .widget-icon { font-size: 18px; line-height: 1; }
+
+    .widget-info { flex: 1; }
+    .widget-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .widget-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      width: 38px; height: 22px;
+      flex-shrink: 0;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.1);
+      border-radius: 99px;
+      cursor: pointer;
+      transition: background 0.22s;
+    }
+
+    .toggle-track::before {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      left: 3px; top: 3px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .toggle input:checked + .toggle-track { background: var(--accent-purple); }
+    .toggle input:checked + .toggle-track::before { transform: translateX(16px); }
+
+    /* ── Layout options ── */
+    .layout-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .layout-btn {
+      padding: 10px 6px;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--border);
+      background: var(--bg-primary);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: border-color 0.22s, background 0.22s, transform 0.18s;
+    }
+
+    .layout-btn:hover { transform: translateY(-2px); }
+
+    .layout-btn.active {
+      border-color: var(--accent-purple);
+      background: rgba(139,124,248,0.1);
+    }
+
+    .layout-icon {
+      width: 100%;
+      height: 36px;
+      background: var(--bg-card);
+      border-radius: 5px;
+      display: flex;
+      gap: 3px;
+      padding: 4px;
+    }
+
+    /* 2-col icon */
+    .li-col { flex: 1; background: rgba(255,255,255,0.08); border-radius: 3px; }
+    .li-col.accent { background: rgba(139,124,248,0.4); }
+
+    /* list icon */
+    .li-rows { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .li-row  { height: 6px; background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .li-row.accent { background: rgba(139,124,248,0.4); }
+
+    /* grid icon */
+    .li-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+    .li-cell { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .li-cell.accent { background: rgba(139,124,248,0.4); }
+
+    .layout-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+
+    .layout-btn.active .layout-label { color: var(--accent-purple); }
+
+    /* Sidebar width slider */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .slider-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      white-space: nowrap;
+      width: 90px;
+    }
+
+    .lifeos-range {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.1);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .lifeos-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--accent-purple);
+      box-shadow: 0 0 8px rgba(139,124,248,0.5);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .lifeos-range::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+    .slider-value {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-purple);
+      width: 36px;
+      text-align: right;
+    }
+
+    /* Compact mode toggle */
+    .toggle-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .toggle-option:last-child { border-bottom: none; padding-bottom: 0; }
+    .toggle-option:first-child { padding-top: 0; }
+
+    .toggle-opt-info { flex: 1; }
+    .toggle-opt-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .toggle-opt-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Save button row */
+    .save-row {
+      padding: 0 28px 36px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      animation: fadeUp 0.4s 0.3s ease both;
+    }
+
+    @media (max-width: 640px) {
+      .save-row { padding: 0 16px 28px; }
+      .preview-shell { margin: 0 16px 20px; }
+      .wallpaper-grid { grid-template-columns: repeat(2, 1fr); }
+      .accent-grid { grid-template-columns: repeat(5, 1fr); }
+    }
+
+    /* ── Light theme overrides (applied via data-theme) ── */
+    [data-lifeos-theme="light"] {
+      --bg-primary:    #f0f0f7;
+      --bg-secondary:  #e4e4ef;
+      --bg-card:       #ffffff;
+      --bg-card-hover: #f6f6fc;
+      --text-primary:  #1a1a2e;
+      --text-muted:    #7070a0;
+      --border:        rgba(0,0,0,0.08);
+    }
+
+    [data-lifeos-theme="light"] body {
+      background-image:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(139,124,248,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(79,156,249,0.04) 0%, transparent 60%);
+    }
+
+    [data-lifeos-theme="dim"] {
+      --bg-primary:    #161722;
+      --bg-secondary:  #1e2030;
+      --bg-card:       #252840;
+      --bg-card-hover: #2a2e4a;
+      --text-primary:  #e0e0f0;
+      --text-muted:    #8080b0;
+      --border:        rgba(255,255,255,0.06);
+    }
+
+    /* Applied wallpaper to body */
+    body.has-wallpaper .main-content {
+      background-attachment: fixed;
+    }
+
+    /* Active accent overrides */
+    [data-accent="blue"]   { --accent-purple: #4f9cf9; }
+    [data-accent="green"]  { --accent-purple: #3ecf8e; }
+    [data-accent="amber"]  { --accent-purple: #f5a623; }
+    [data-accent="pink"]   { --accent-purple: #e066a0; }
+    [data-accent="teal"]   { --accent-purple: #38bdf8; }
+    [data-accent="red"]    { --accent-purple: #f87171; }
+    [data-accent="lime"]   { --accent-purple: #84cc16; }
+    [data-accent="cyan"]   { --accent-purple: #22d3ee; }
+    [data-accent="orange"] { --accent-purple: #fb923c; }
+    [data-accent="purple"] { --accent-purple: #8b7cf8; }
+
+    /* Compact layout */
+    [data-layout-compact="true"] .module-card { padding: 14px 16px; }
+    [data-layout-compact="true"] .modules-grid { gap: 10px; }
+    [data-layout-compact="true"] .nav-item { padding: 8px 14px; }
+    [data-layout-compact="true"] .stats-row { padding-bottom: 28px; }
+
+    /* Sidebar hidden (icon only) */
+    [data-sidebar-mini="true"] .sidebar { width: 58px; }
+    [data-sidebar-mini="true"] .nav-label,
+    [data-sidebar-mini="true"] .brand-name,
+    [data-sidebar-mini="true"] .sidebar-footer,
+    [data-sidebar-mini="true"] #sidebarUserName { display: none; }
+    [data-sidebar-mini="true"] .main-content { margin-left: 58px; }
+    [data-sidebar-mini="true"] .nav-item { justify-content: center; padding: 11px 6px; }
+    [data-sidebar-mini="true"] .sidebar-brand { justify-content: center; padding: 22px 6px; }
+
+    /* List layout override */
+    [data-grid-layout="list"] .modules-grid { grid-template-columns: 1fr; }
+
+    /* 2-col layout override */
+    [data-grid-layout="2col"] .modules-grid { grid-template-columns: 1fr 1fr; }
+
+    @media (max-width: 640px) {
+      [data-grid-layout="2col"] .modules-grid { grid-template-columns: 1fr; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-name">LifeOS</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="../index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+      <a href="school.html" class="nav-item"><span class="nav-icon">🎓</span><span class="nav-label">School</span></a>
+      <a href="productivity.html" class="nav-item"><span class="nav-icon">✅</span><span class="nav-label">Productivity</span></a>
+      <a href="notes.html" class="nav-item"><span class="nav-icon">📝</span><span class="nav-label">Notes</span></a>
+      <a href="finance.html" class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Finance</span></a>
+      <a href="creator.html" class="nav-item"><span class="nav-icon">🎬</span><span class="nav-label">Creator</span></a>
+      <a href="relationship.html" class="nav-item"><span class="nav-icon">💕</span><span class="nav-label">Relationship</span></a>
+      <a href="whop.html" class="nav-item"><span class="nav-icon">🟠</span><span class="nav-label">Whop Clipping</span></a>
+      <a href="ai.html" class="nav-item"><span class="nav-icon">🤖</span><span class="nav-label">AI Assistant</span></a>
+      <a href="calendar.html" class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Calendar</span></a>
+      <a href="notification.html" class="nav-item"><span class="nav-icon">🔔</span><span class="nav-label">Notifications</span></a>
+      <a href="analytics.html" class="nav-item"><span class="nav-icon">📈</span><span class="nav-label">Analytics</span></a>
+      <a href="personalization.html" class="nav-item active"><span class="nav-icon">🎨</span><span class="nav-label">Personalize</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="sidebarUserName" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 2px;"></div>
+      <button onclick="lifeOSSignOut()" style="background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.25);color:#f87171;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;width:100%;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,80,80,0.2)'" onmouseout="this.style.background='rgba(255,80,80,0.1)'">Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">☰</button>
+      <div class="topbar-title">Personalization</div>
+      <div class="topbar-date" id="currentDate"></div>
+    </header>
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1>🎨 Personalization</h1>
+      <p>Make LifeOS feel like yours — theme, colors, wallpapers, widgets & layout.</p>
+    </div>
+
+    <!-- Live Preview -->
+    <div class="preview-shell">
+      <span class="preview-label">Live Preview</span>
+      <div class="preview-frame" id="previewFrame">
+        <div class="preview-sidebar-mini" id="pvSidebar">
+          <div class="preview-nav-dot"></div>
+          <div class="preview-nav-dot dim"></div>
+          <div class="preview-nav-dot dim"></div>
+          <div class="preview-nav-dot dim"></div>
+          <div class="preview-nav-dot dim"></div>
+        </div>
+        <div class="preview-main-mini" id="pvMain">
+          <div class="preview-wallpaper" id="pvWallpaper"></div>
+          <div class="preview-heading-bar" id="pvHeading"></div>
+          <div class="preview-sub-bar"></div>
+          <div class="preview-cards-row">
+            <div class="preview-card-mini" id="pvCard1">
+              <div class="accent-line"></div>
+              <div class="card-bar"></div>
+              <div class="card-bar short"></div>
+            </div>
+            <div class="preview-card-mini" id="pvCard2">
+              <div class="accent-line"></div>
+              <div class="card-bar"></div>
+              <div class="card-bar short"></div>
+            </div>
+            <div class="preview-card-mini" id="pvCard3">
+              <div class="accent-line"></div>
+              <div class="card-bar"></div>
+              <div class="card-bar short"></div>
+            </div>
+          </div>
+          <div class="preview-widget-strip" id="pvWidgets">
+            <div class="preview-widget-chip"><div class="dot"></div>Tasks</div>
+            <div class="preview-widget-chip"><div class="dot"></div>Notes</div>
+            <div class="preview-widget-chip"><div class="dot"></div>Habits</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings panels grid -->
+    <div class="settings-grid">
+
+      <!-- 1. Theme -->
+      <div class="settings-panel">
+        <div class="panel-title"><span class="panel-title-icon">🌓</span>Color Scheme</div>
+        <div class="theme-toggle-row">
+          <button class="theme-btn active" data-theme="dark" onclick="setTheme('dark',this)">
+            <div class="theme-preview">
+              <div class="theme-preview-sidebar"></div>
+              <div class="theme-preview-main"></div>
+            </div>
+            <span class="theme-btn-label">Dark</span>
+          </button>
+          <button class="theme-btn" data-theme="dim" onclick="setTheme('dim',this)">
+            <div class="theme-preview">
+              <div class="theme-preview-sidebar"></div>
+              <div class="theme-preview-main"></div>
+            </div>
+            <span class="theme-btn-label">Dim</span>
+          </button>
+          <button class="theme-btn" data-theme="light" onclick="setTheme('light',this)">
+            <div class="theme-preview">
+              <div class="theme-preview-sidebar"></div>
+              <div class="theme-preview-main"></div>
+            </div>
+            <span class="theme-btn-label">Light</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Accent Colors -->
+      <div class="settings-panel">
+        <div class="panel-title"><span class="panel-title-icon">🎨</span>Accent Color</div>
+        <div class="accent-grid" id="accentGrid">
+          <!-- Swatches injected by JS -->
+        </div>
+      </div>
+
+      <!-- 3. Wallpapers -->
+      <div class="settings-panel" style="grid-column: 1 / -1;">
+        <div class="panel-title"><span class="panel-title-icon">🖼️</span>Wallpaper</div>
+        <div class="wallpaper-grid" id="wallpaperGrid">
+          <!-- Thumbs injected by JS -->
+        </div>
+      </div>
+
+      <!-- 4. Widgets -->
+      <div class="settings-panel">
+        <div class="panel-title"><span class="panel-title-icon">🧩</span>Dashboard Widgets</div>
+        <div class="widget-list" id="widgetList">
+          <!-- Rows injected by JS -->
+        </div>
+      </div>
+
+      <!-- 5. Layout -->
+      <div class="settings-panel">
+        <div class="panel-title"><span class="panel-title-icon">📐</span>Layout</div>
+
+        <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.7px;">Module Grid</p>
+        <div class="layout-options" id="layoutGrid">
+          <button class="layout-btn active" data-layout="auto" onclick="setLayout('auto',this)">
+            <div class="layout-icon">
+              <div class="li-col accent"></div>
+              <div class="li-col"></div>
+              <div class="li-col"></div>
+            </div>
+            <span class="layout-label">Auto</span>
+          </button>
+          <button class="layout-btn" data-layout="2col" onclick="setLayout('2col',this)">
+            <div class="layout-icon">
+              <div class="li-col accent"></div>
+              <div class="li-col accent"></div>
+            </div>
+            <span class="layout-label">2-Col</span>
+          </button>
+          <button class="layout-btn" data-layout="list" onclick="setLayout('list',this)">
+            <div class="layout-icon" style="flex-direction:column;gap:3px;">
+              <div class="li-row accent"></div>
+              <div class="li-row"></div>
+              <div class="li-row"></div>
+            </div>
+            <span class="layout-label">List</span>
+          </button>
+        </div>
+
+        <div style="margin-top:20px;">
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.7px;">Options</p>
+          <div class="toggle-option">
+            <div class="toggle-opt-info">
+              <div class="toggle-opt-name">Compact Mode</div>
+              <div class="toggle-opt-desc">Reduce card padding & spacing</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="toggleCompact" onchange="applyToggle('compact', this.checked)" />
+              <div class="toggle-track"></div>
+            </label>
+          </div>
+          <div class="toggle-option">
+            <div class="toggle-opt-info">
+              <div class="toggle-opt-name">Mini Sidebar</div>
+              <div class="toggle-opt-desc">Show icons only, collapse labels</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="toggleMiniSidebar" onchange="applyToggle('miniSidebar', this.checked)" />
+              <div class="toggle-track"></div>
+            </label>
+          </div>
+          <div class="toggle-option">
+            <div class="toggle-opt-info">
+              <div class="toggle-opt-name">Animations</div>
+              <div class="toggle-opt-desc">Entrance & hover animations</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="toggleAnimations" checked onchange="applyToggle('animations', this.checked)" />
+              <div class="toggle-track"></div>
+            </label>
+          </div>
+          <div class="toggle-option">
+            <div class="toggle-opt-info">
+              <div class="toggle-opt-name">Reduced Glow</div>
+              <div class="toggle-opt-desc">Dim glows & text shadows</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="toggleGlow" onchange="applyToggle('reducedGlow', this.checked)" />
+              <div class="toggle-track"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /settings-grid -->
+
+    <!-- Save / Reset / Download -->
+    <div class="save-row">
+      <button class="lifeos-btn secondary" onclick="resetPrefs()">↺ Reset Defaults</button>
+      <button class="lifeos-btn secondary" onclick="downloadPage()">⬇ Download Page</button>
+      <button class="lifeos-btn" onclick="savePrefs()">💾 Save Preferences</button>
+    </div>
+
+  </main>
+
+  <div class="overlay" id="overlay" style="display:none;"></div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="../firebase.js"></script>
+  <script src="../app.js"></script>
+
+  <script>
+  // ================================================
+  // LIFEOS PERSONALIZATION – personalization.js
+  // ================================================
+
+  // ── Config data ──
+
+  const ACCENTS = [
+    { key:'purple', color:'#8b7cf8', label:'Purple' },
+    { key:'blue',   color:'#4f9cf9', label:'Blue'   },
+    { key:'green',  color:'#3ecf8e', label:'Mint'   },
+    { key:'teal',   color:'#38bdf8', label:'Teal'   },
+    { key:'cyan',   color:'#22d3ee', label:'Cyan'   },
+    { key:'lime',   color:'#84cc16', label:'Lime'   },
+    { key:'amber',  color:'#f5a623', label:'Amber'  },
+    { key:'orange', color:'#fb923c', label:'Orange' },
+    { key:'pink',   color:'#e066a0', label:'Pink'   },
+    { key:'red',    color:'#f87171', label:'Red'    },
+  ];
+
+  const WALLPAPERS = [
+    { key:'none',    label:'None',       gradient:'linear-gradient(135deg,#0b0b10 0%,#13131e 100%)', css:'' },
+    { key:'aurora',  label:'Aurora',     gradient:'linear-gradient(135deg,#0d1117 0%,#1a0533 40%,#0a2540 100%)', css:'linear-gradient(135deg,#0d1117 0%,#1a0533 40%,#0a2540 100%)' },
+    { key:'cosmos',  label:'Cosmos',     gradient:'radial-gradient(ellipse at 30% 30%,#1a1a3e 0%,#0a0a1a 60%,#000 100%)', css:'radial-gradient(ellipse at 30% 30%,#1a1a3e 0%,#0a0a1a 60%,#000 100%)' },
+    { key:'sunset',  label:'Sunset',     gradient:'linear-gradient(160deg,#1a0533 0%,#3d0c4e 30%,#7c2d12 70%,#0a0a0a 100%)', css:'linear-gradient(160deg,#1a0533 0%,#3d0c4e 30%,#7c2d12 70%,#0a0a0a 100%)' },
+    { key:'ocean',   label:'Ocean',      gradient:'linear-gradient(180deg,#001f3f 0%,#003d7a 40%,#001f3f 100%)', css:'linear-gradient(180deg,#001f3f 0%,#003d7a 40%,#001f3f 100%)' },
+    { key:'forest',  label:'Forest',     gradient:'linear-gradient(160deg,#022c22 0%,#064e3b 40%,#065f46 100%)', css:'linear-gradient(160deg,#022c22 0%,#064e3b 40%,#065f46 100%)' },
+    { key:'neon',    label:'Neon City',  gradient:'linear-gradient(135deg,#0a0015 0%,#150025 50%,#001530 100%)', css:'linear-gradient(135deg,#0a0015 0%,#150025 50%,#001530 100%)' },
+    { key:'rose',    label:'Rose Gold',  gradient:'linear-gradient(135deg,#1a0a10 0%,#3d1a25 50%,#2a1015 100%)', css:'linear-gradient(135deg,#1a0a10 0%,#3d1a25 50%,#2a1015 100%)' },
+  ];
+
+  const WIDGETS = [
+    { key:'tasks',    icon:'✅', name:'Tasks Today',   desc:'Pending tasks for today',       enabled:true  },
+    { key:'notes',    icon:'📝', name:'Notes Saved',   desc:'Total notes in your vault',     enabled:true  },
+    { key:'habits',   icon:'🔥', name:'Habits Done',   desc:"Today's completed habits",      enabled:true  },
+    { key:'exam',     icon:'📅', name:'Days to Exam',  desc:'Countdown to next exam',        enabled:true  },
+    { key:'finance',  icon:'💰', name:'Net Balance',   desc:'Income minus expenses',         enabled:false },
+    { key:'streak',   icon:'⚡', name:'Study Streak',  desc:'Consecutive study days',        enabled:false },
+    { key:'pomodoro', icon:'⏱️', name:'Pomodoro Timer', desc:'Focus sessions today',         enabled:false },
+    { key:'mood',     icon:'😊', name:'Mood Check-in', desc:'Daily mood tracker widget',     enabled:false },
+  ];
+
+  // ── State ──
+  let prefs = {
+    theme:      'dark',
+    accent:     'purple',
+    wallpaper:  'none',
+    wallpaperCustom: null,
+    layout:     'auto',
+    compact:    false,
+    miniSidebar: false,
+    animations: true,
+    reducedGlow: false,
+    widgets: WIDGETS.map(w => ({ key: w.key, enabled: w.enabled })),
+  };
+
+  // ── Build accent grid ──
+  function buildAccentGrid() {
+    const grid = document.getElementById('accentGrid');
+    grid.innerHTML = '';
+    ACCENTS.forEach(a => {
+      const wrap = document.createElement('div');
+      wrap.className = 'swatch-wrap';
+      const swatch = document.createElement('div');
+      swatch.className = 'accent-swatch' + (prefs.accent === a.key ? ' active' : '');
+      swatch.style.background = a.color;
+      swatch.title = a.label;
+      swatch.dataset.accent = a.key;
+      swatch.onclick = () => setAccent(a.key, swatch);
+      const lbl = document.createElement('div');
+      lbl.className = 'accent-label';
+      lbl.textContent = a.label;
+      wrap.appendChild(swatch);
+      wrap.appendChild(lbl);
+      grid.appendChild(wrap);
+    });
+  }
+
+  // ── Build wallpaper grid ──
+  function buildWallpaperGrid() {
+    const grid = document.getElementById('wallpaperGrid');
+    grid.innerHTML = '';
+    WALLPAPERS.forEach(w => {
+      const thumb = document.createElement('div');
+      thumb.className = 'wallpaper-thumb' + (prefs.wallpaper === w.key ? ' active' : '');
+      thumb.style.background = w.gradient;
+      thumb.dataset.wp = w.key;
+      thumb.innerHTML = `<span class="wp-label">${w.label}</span>`;
+      thumb.onclick = () => setWallpaper(w.key, thumb, w.css);
+      grid.appendChild(thumb);
+    });
+    // Custom upload button
+    const uploadBtn = document.createElement('div');
+    uploadBtn.className = 'wallpaper-upload-btn';
+    uploadBtn.innerHTML = `<span class="wallpaper-upload-icon">📁</span><span>Upload</span>`;
+    uploadBtn.onclick = () => {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*';
+      inp.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          prefs.wallpaperCustom = ev.target.result;
+          prefs.wallpaper = 'custom';
+          setWallpaperCSS(ev.target.result);
+          buildWallpaperGrid(); // rebuild to show selection
+          updatePreview();
+        };
+        reader.readAsDataURL(file);
+      };
+      inp.click();
+    };
+    grid.appendChild(uploadBtn);
+  }
+
+  // ── Build widget list (drag-to-reorder) ──
+  let dragSrc = null;
+
+  function buildWidgetList() {
+    const list = document.getElementById('widgetList');
+    list.innerHTML = '';
+    // merge prefs.widgets order with WIDGETS data
+    const ordered = prefs.widgets.map(pw => {
+      const def = WIDGETS.find(w => w.key === pw.key);
+      return { ...def, enabled: pw.enabled };
+    });
+    // add any new widgets not in prefs
+    WIDGETS.forEach(w => {
+      if (!ordered.find(o => o.key === w.key)) ordered.push(w);
+    });
+
+    ordered.forEach((w, idx) => {
+      const row = document.createElement('div');
+      row.className = 'widget-row';
+      row.draggable = true;
+      row.dataset.idx = idx;
+      row.innerHTML = `
+        <span class="widget-drag-handle">⠿</span>
+        <span class="widget-icon">${w.icon}</span>
+        <div class="widget-info">
+          <div class="widget-name">${w.name}</div>
+          <div class="widget-desc">${w.desc}</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" ${w.enabled ? 'checked' : ''} data-key="${w.key}" onchange="toggleWidget('${w.key}', this.checked)" />
+          <div class="toggle-track"></div>
+        </label>
+      `;
+      // Drag events
+      row.addEventListener('dragstart', e => {
+        dragSrc = row;
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        list.querySelectorAll('.widget-row').forEach(r => r.classList.remove('drag-over'));
+      });
+      row.addEventListener('dragover', e => {
+        e.preventDefault();
+        list.querySelectorAll('.widget-row').forEach(r => r.classList.remove('drag-over'));
+        if (row !== dragSrc) row.classList.add('drag-over');
+      });
+      row.addEventListener('drop', e => {
+        e.preventDefault();
+        if (dragSrc && dragSrc !== row) {
+          const srcIdx = parseInt(dragSrc.dataset.idx);
+          const tgtIdx = parseInt(row.dataset.idx);
+          const newOrder = [...prefs.widgets];
+          const [moved] = newOrder.splice(srcIdx, 1);
+          newOrder.splice(tgtIdx, 0, moved);
+          prefs.widgets = newOrder;
+          buildWidgetList();
+          updatePreview();
+        }
+      });
+      list.appendChild(row);
+    });
+  }
+
+  // ── Actions ──
+
+  function setTheme(theme, btn) {
+    prefs.theme = theme;
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyTheme();
+    updatePreview();
+  }
+
+  function applyTheme() {
+    document.documentElement.removeAttribute('data-lifeos-theme');
+    if (prefs.theme !== 'dark') {
+      document.documentElement.setAttribute('data-lifeos-theme', prefs.theme);
+    }
+  }
+
+  function setAccent(key, el) {
+    prefs.accent = key;
+    document.querySelectorAll('.accent-swatch').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    applyAccent();
+    updatePreview();
+  }
+
+  function applyAccent() {
+    document.documentElement.removeAttribute('data-accent');
+    if (prefs.accent !== 'purple') {
+      document.documentElement.setAttribute('data-accent', prefs.accent);
+    }
+  }
+
+  function setWallpaper(key, el, css) {
+    prefs.wallpaper = key;
+    prefs.wallpaperCustom = null;
+    document.querySelectorAll('.wallpaper-thumb').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    setWallpaperCSS(css);
+    updatePreview();
+  }
+
+  function setWallpaperCSS(css) {
+    const mc = document.querySelector('.main-content');
+    if (!mc) return;
+    if (!css) {
+      mc.style.backgroundImage = '';
+      mc.style.backgroundSize = '';
+      mc.style.backgroundAttachment = '';
+    } else {
+      mc.style.backgroundImage = css.startsWith('data:') ? `url(${css})` : css;
+      mc.style.backgroundSize = 'cover';
+      mc.style.backgroundAttachment = 'fixed';
+    }
+  }
+
+  function setLayout(layout, btn) {
+    prefs.layout = layout;
+    document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyLayout();
+    updatePreview();
+  }
+
+  function applyLayout() {
+    document.documentElement.removeAttribute('data-grid-layout');
+    if (prefs.layout !== 'auto') {
+      document.documentElement.setAttribute('data-grid-layout', prefs.layout);
+    }
+  }
+
+  function applyToggle(key, val) {
+    prefs[key] = val;
+    if (key === 'compact') {
+      document.documentElement.setAttribute('data-layout-compact', val);
+    } else if (key === 'miniSidebar') {
+      document.documentElement.setAttribute('data-sidebar-mini', val);
+    } else if (key === 'animations') {
+      document.documentElement.style.setProperty('--transition', val ? '0.22s cubic-bezier(0.4,0,0.2,1)' : '0s');
+    } else if (key === 'reducedGlow') {
+      document.documentElement.setAttribute('data-reduced-glow', val);
+    }
+    updatePreview();
+  }
+
+  function toggleWidget(key, enabled) {
+    const w = prefs.widgets.find(w => w.key === key);
+    if (w) w.enabled = enabled;
+    updatePreview();
+  }
+
+  // ── Live Preview update ──
+  function updatePreview() {
+    const pv = document.getElementById('previewFrame');
+    const pvSidebar = document.getElementById('pvSidebar');
+    const pvMain = document.getElementById('pvMain');
+    const pvWallpaper = document.getElementById('pvWallpaper');
+
+    // Accent
+    const accent = ACCENTS.find(a => a.key === prefs.accent) || ACCENTS[0];
+    pv.style.setProperty('--preview-accent', accent.color);
+    document.querySelectorAll('.accent-line').forEach(l => l.style.background = accent.color);
+    document.querySelectorAll('.preview-nav-dot:first-child').forEach(d => d.style.background = accent.color);
+    document.querySelectorAll('.preview-widget-chip').forEach(c => {
+      c.style.color = accent.color;
+      c.querySelectorAll('.dot').forEach(d => d.style.background = accent.color);
+    });
+
+    // Theme
+    const themeMap = {
+      dark:  { bg: '#0b0b10', card: '#1c1c2e', sb: '#13131e', text: 'rgba(238,238,247,0.9)' },
+      dim:   { bg: '#161722', card: '#252840', sb: '#1e2030', text: 'rgba(224,224,240,0.9)' },
+      light: { bg: '#f0f0f7', card: '#ffffff', sb: '#e4e4ef', text: 'rgba(26,26,46,0.9)' },
+    };
+    const t = themeMap[prefs.theme] || themeMap.dark;
+    pvMain.style.background = t.bg;
+    pvSidebar.style.background = t.sb;
+    pv.style.setProperty('--preview-bg-primary', t.bg);
+    pv.style.setProperty('--preview-bg-card', t.card);
+    pv.style.setProperty('--preview-text', t.text);
+    document.querySelectorAll('.preview-card-mini').forEach(c => {
+      c.style.background = t.card;
+      c.style.borderColor = prefs.theme === 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)';
+    });
+    document.getElementById('pvHeading').style.background = t.text;
+    document.querySelectorAll('.preview-widget-chip').forEach(c => {
+      c.style.background = t.card;
+      c.style.borderColor = prefs.theme === 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)';
+    });
+
+    // Wallpaper
+    const wp = WALLPAPERS.find(w => w.key === prefs.wallpaper);
+    if (prefs.wallpaper === 'custom' && prefs.wallpaperCustom) {
+      pvWallpaper.style.backgroundImage = `url(${prefs.wallpaperCustom})`;
+      pvWallpaper.style.backgroundSize = 'cover';
+      pvWallpaper.classList.add('active');
+    } else if (wp && wp.css) {
+      pvWallpaper.style.backgroundImage = wp.css;
+      pvWallpaper.classList.add('active');
+    } else {
+      pvWallpaper.classList.remove('active');
+      pvWallpaper.style.backgroundImage = '';
+    }
+
+    // Widget chips (show only enabled)
+    const enabledWidgets = prefs.widgets.filter(w => w.enabled).slice(0,4);
+    const chipContainer = document.getElementById('pvWidgets');
+    chipContainer.innerHTML = enabledWidgets.map(w => {
+      const def = WIDGETS.find(d => d.key === w.key);
+      return `<div class="preview-widget-chip" style="color:${accent.color};background:${t.card};border-color:${prefs.theme==='light'?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.07)'}"><div class="dot" style="background:${accent.color}"></div>${def ? def.name.split(' ')[0] : w.key}</div>`;
+    }).join('');
+  }
+
+  // ── Save & Load ──
+  async function savePrefs() {
+    const btn = document.querySelector('.save-row .lifeos-btn:last-child');
+    btn.textContent = '⏳ Saving…';
+    btn.disabled = true;
+    await window.lifeOSSave('lifeos_prefs', prefs);
+    btn.textContent = '✓ Saved!';
+    btn.style.background = '#3ecf8e';
+    setTimeout(() => {
+      btn.textContent = '💾 Save Preferences';
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 2000);
+  }
+
+  async function loadPrefs() {
+    const saved = await window.lifeOSLoad('lifeos_prefs', null);
+    if (!saved) return;
+    // Merge, preserving new widget defaults
+    prefs = {
+      ...prefs,
+      ...saved,
+      widgets: saved.widgets || prefs.widgets,
+    };
+    applyAllPrefs();
+    syncUI();
+  }
+
+  function applyAllPrefs() {
+    applyTheme();
+    applyAccent();
+    applyLayout();
+    if (prefs.wallpaper === 'custom' && prefs.wallpaperCustom) {
+      setWallpaperCSS(prefs.wallpaperCustom);
+    } else {
+      const wp = WALLPAPERS.find(w => w.key === prefs.wallpaper);
+      setWallpaperCSS(wp ? wp.css : '');
+    }
+    document.documentElement.setAttribute('data-layout-compact', prefs.compact);
+    document.documentElement.setAttribute('data-sidebar-mini', prefs.miniSidebar);
+    if (!prefs.animations) {
+      document.documentElement.style.setProperty('--transition', '0s');
+    }
+    if (prefs.reducedGlow) {
+      document.documentElement.setAttribute('data-reduced-glow', 'true');
+    }
+  }
+
+  function syncUI() {
+    // Theme buttons
+    document.querySelectorAll('.theme-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.theme === prefs.theme);
+    });
+    // Layout buttons
+    document.querySelectorAll('.layout-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.layout === prefs.layout);
+    });
+    // Toggles
+    const toggleIds = { compact:'toggleCompact', miniSidebar:'toggleMiniSidebar', animations:'toggleAnimations', reducedGlow:'toggleGlow' };
+    Object.entries(toggleIds).forEach(([key, id]) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = prefs[key];
+    });
+    buildAccentGrid();
+    buildWallpaperGrid();
+    buildWidgetList();
+    updatePreview();
+  }
+
+  function resetPrefs() {
+    prefs = {
+      theme:'dark', accent:'purple', wallpaper:'none', wallpaperCustom:null,
+      layout:'auto', compact:false, miniSidebar:false, animations:true, reducedGlow:false,
+      widgets: WIDGETS.map(w => ({ key:w.key, enabled:w.enabled })),
+    };
+    applyAllPrefs();
+    syncUI();
+  }
+
+  // ── Init ──
+  buildAccentGrid();
+  buildWallpaperGrid();
+  buildWidgetList();
+  updatePreview();
+
+  // Load saved prefs after auth
+  window.addEventListener('load', async () => {
+    try {
+      await loadPrefs();
+    } catch (_) {}
+  });
+
+  // Also expose globally so index.html can apply prefs on load:
+  window.lifeOSApplyPrefs = applyAllPrefs;
+
+  // ── Download this page ──
+  function downloadPage() {
+    const html = document.documentElement.outerHTML;
+    const blob = new Blob([html], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'personalization.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  </script>
+
+</body>
+</html>
