@@ -7,9 +7,11 @@
 // ----- 1. Live Clock & Date -----
 function updateClock() {
   const now     = new Date();
-  const hours   = String(now.getHours()).padStart(2, '0');
+  const h       = now.getHours();
+  const hours   = String(h % 12 || 12).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
-  const timeStr = `${hours}:${minutes}`;
+  const ampm    = h < 12 ? 'AM' : 'PM';
+  const timeStr = `${hours}:${minutes} ${ampm}`;
   const dateStr = now.toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
@@ -86,9 +88,12 @@ const WIDGET_LOADERS = {
     return { value: val };
   },
   async finance() {
-    const txns = await lifeOSLoad('lifeos_transactions', []);
-    const net  = txns.reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0);
-    const sign = net >= 0 ? '+' : '';
+    const income   = await lifeOSLoad('lifeos_finance_income',   []);
+    const expenses = await lifeOSLoad('lifeos_finance_expenses', []);
+    const totalInc = income.reduce((s, t)   => s + Number(t.amount), 0);
+    const totalExp = expenses.reduce((s, t) => s + Number(t.amount), 0);
+    const net      = totalInc - totalExp;
+    const sign     = net >= 0 ? '+' : '-';
     return { value: sign + '₱' + Math.abs(net).toLocaleString(), raw: net, noAnimate: true };
   },
   async streak() {
