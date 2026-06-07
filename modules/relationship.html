@@ -1293,8 +1293,10 @@
           newItems.push(item);
           showProgress(`Saved ${i + 1} / ${arr.length}`, 98);
         } catch (err) {
-          console.warn('[Gallery] Upload failed for', file.name, err);
-          alert(`Failed to upload "${file.name}". Check your internet connection and try again.`);
+          console.error('[Gallery] Upload failed for', file.name, err);
+          hideProgress();
+          alert(`❌ Upload failed for "${file.name}":\n\n${err.message}\n\nMake sure your Firebase Storage rules allow authenticated uploads.`);
+          return; // stop processing remaining files
         }
       }
 
