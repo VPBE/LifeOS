@@ -128,27 +128,63 @@
   // =========================================
   window.lifeOSUploadFile = async function(file, folder, onProgress) {
     await window.authReady;
-    var uid       = window._currentUser.uid;
-    var timestamp = Date.now();
-    var safeName  = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    var path      = 'users/' + uid + '/' + folder + '/' + timestamp + '_' + safeName;
-    var ref       = window._storage.ref(path);
-    var task      = ref.put(file);
+
+    if (!window._currentUser) throw new Error('Not logged in');
+
+    var uid      = window._currentUser.uid;
+    var ts       = Date.now();
+    var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    var path     = 'users/' + uid + '/' + folder + '/' + ts + '_' + safeName;
+    var ref      = window._storage.ref(path);
+
+    // Use uploadBytesResumable-style via compat SDK
+    var metadata = { contentType: file.type };
+    var task     = ref.put(file, metadata);
 
     return new Promise(function(resolve, reject) {
+      // Hard timeout — if nothing happens in 60 s, bail
+      var timer = setTimeout(function() {
+        task.cancel();
+        reject(new Error('Upload timed out after 60 seconds. Check your internet connection and Firebase Storage rules.'));
+      }, 60000);
+
       task.on(
         'state_changed',
         function(snap) {
-          var pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+          // Reset timeout on progress
+          clearTimeout(timer);
+          timer = setTimeout(function() {
+            task.cancel();
+            reject(new Error('Upload stalled. Check your internet connection.'));
+          }, 30000);
+
+          var pct = snap.totalBytes > 0
+            ? Math.round((snap.bytesTransferred / snap.totalBytes) * 100)
+            : 0;
           if (typeof onProgress === 'function') onProgress(pct);
         },
         function(err) {
-          console.warn('[LifeOS] Storage upload failed:', err);
-          reject(err);
+          clearTimeout(timer);
+          var msg = err.message || err.code || String(err);
+          // Surface the most common issues clearly
+          if (err.code === 'storage/unauthorized') {
+            msg = 'Permission denied. Please set your Firebase Storage rules to allow authenticated uploads (see docs).';
+          } else if (err.code === 'storage/canceled') {
+            msg = 'Upload was cancelled.';
+          } else if (err.code === 'storage/unknown') {
+            msg = 'Network error. Check your internet connection.';
+          }
+          console.error('[LifeOS] Storage upload error:', err.code, err.message);
+          reject(new Error(msg));
         },
         async function() {
-          var url = await task.snapshot.ref.getDownloadURL();
-          resolve({ url: url, storagePath: path });
+          clearTimeout(timer);
+          try {
+            var url = await task.snapshot.ref.getDownloadURL();
+            resolve({ url: url, storagePath: path });
+          } catch (e) {
+            reject(e);
+          }
         }
       );
     });
