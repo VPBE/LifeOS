@@ -1,5 +1,5 @@
 // =========================================
-// LIFEOS – FIREBASE CONFIG & SYNC  (v4 – Auth)
+// LIFEOS – FIREBASE CONFIG & SYNC  (v5 – Auth + Storage)
 // firebase.js
 // =========================================
 
@@ -17,47 +17,38 @@
   };
 
   if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-  window._db   = firebase.firestore();
-  window._auth = firebase.auth();
+  window._db      = firebase.firestore();
+  window._auth    = firebase.auth();
+  window._storage = firebase.storage();
 
   // =========================================
   // NAVIGATION HELPER
-  // Works in both browser and Electron
   // =========================================
   window._lifeOSNavigate = function(page) {
-    // In Electron, files are loaded via file:// protocol
     if (window.location.protocol === 'file:') {
-      // Build path relative to current file location
       var base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-      // If we're in modules/ subfolder, go up one level for root pages
       if (base.indexOf('/modules/') !== -1 && (page === 'login.html' || page === 'index.html' || page === 'signup.html')) {
         base = base.substring(0, base.lastIndexOf('/modules/') + 1);
       }
       window.location.href = base + page;
     } else {
-      // Browser: use absolute path
       window.location.replace('/' + page);
     }
   };
 
   // =========================================
   // AUTH READY PROMISE
-  // Any code that needs _currentUser should
-  // await window.authReady before proceeding.
   // =========================================
   window.authReady = new Promise(function(resolve) {
     var unsub = window._auth.onAuthStateChanged(function(user) {
-      unsub(); // only fire once for the initial check
+      unsub();
       if (!user) {
         window._lifeOSNavigate('login.html');
         return;
       }
       window._currentUser = user;
-
-      // Show name in sidebar
       var nameEl = document.getElementById('sidebarUserName');
       if (nameEl) nameEl.textContent = user.displayName || user.email;
-
       resolve(user);
     });
   });
@@ -72,7 +63,7 @@
   };
 
   // =========================================
-  // SCOPED KEY — data isolated per user UID
+  // SCOPED KEY
   // =========================================
   window._scopedKey = function(key) {
     var uid = window._currentUser ? window._currentUser.uid : 'anonymous';
@@ -80,7 +71,7 @@
   };
 
   // =========================================
-  // CLOUD SAVE / LOAD
+  // FIRESTORE SAVE / LOAD
   // =========================================
   window.saveToCloud = async function(key, data) {
     if (!window._currentUser) return;
@@ -119,7 +110,6 @@
   };
 
   window.lifeOSSave = async function(key, data) {
-    // Wait for auth before saving
     await window.authReady;
     localStorage.setItem(window._scopedKey(key), JSON.stringify(data));
     await window.saveToCloud(key, data);
@@ -127,10 +117,51 @@
 
   window.lifeOSLoad = async function(key, defaultValue) {
     if (defaultValue === undefined) defaultValue = [];
-    // Wait for auth before loading
     await window.authReady;
     var data = await window.loadFromCloud(key);
     return data !== null ? data : defaultValue;
+  };
+
+  // =========================================
+  // FIREBASE STORAGE HELPERS
+  // Upload a File object → returns { url, storagePath }
+  // =========================================
+  window.lifeOSUploadFile = async function(file, folder, onProgress) {
+    await window.authReady;
+    var uid       = window._currentUser.uid;
+    var timestamp = Date.now();
+    var safeName  = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    var path      = 'users/' + uid + '/' + folder + '/' + timestamp + '_' + safeName;
+    var ref       = window._storage.ref(path);
+    var task      = ref.put(file);
+
+    return new Promise(function(resolve, reject) {
+      task.on(
+        'state_changed',
+        function(snap) {
+          var pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+          if (typeof onProgress === 'function') onProgress(pct);
+        },
+        function(err) {
+          console.warn('[LifeOS] Storage upload failed:', err);
+          reject(err);
+        },
+        async function() {
+          var url = await task.snapshot.ref.getDownloadURL();
+          resolve({ url: url, storagePath: path });
+        }
+      );
+    });
+  };
+
+  // Delete a file from Storage by its path
+  window.lifeOSDeleteFile = async function(storagePath) {
+    if (!storagePath) return;
+    try {
+      await window._storage.ref(storagePath).delete();
+    } catch (err) {
+      console.warn('[LifeOS] Storage delete failed (file may already be gone):', err);
+    }
   };
 
   // =========================================
