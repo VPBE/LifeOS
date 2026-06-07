@@ -1260,11 +1260,50 @@
       setTimeout(() => document.getElementById('uploadProgress').classList.remove('show'), 800);
     }
 
-    // Upload files → Firebase Storage, save metadata to Firestore
+    // ── Cloudinary config ──
+    const CLOUDINARY_CLOUD  = 'dqwijlglf';
+    const CLOUDINARY_PRESET = 'lifeos_gallery';
+    const CLOUDINARY_URL    = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/auto/upload`;
+
+    // Upload a single file to Cloudinary, returns { url, publicId }
+    async function uploadToCloudinary(file, onProgress) {
+      return new Promise((resolve, reject) => {
+        const fd = new FormData();
+        fd.append('file',           file);
+        fd.append('upload_preset',  CLOUDINARY_PRESET);
+        fd.append('folder',         'lifeos_gallery');
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', CLOUDINARY_URL);
+
+        xhr.upload.onprogress = e => {
+          if (e.lengthComputable && typeof onProgress === 'function') {
+            onProgress(Math.round((e.loaded / e.total) * 100));
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const res = JSON.parse(xhr.responseText);
+            resolve({ url: res.secure_url, publicId: res.public_id });
+          } else {
+            let msg = `Upload failed (${xhr.status})`;
+            try { msg = JSON.parse(xhr.responseText).error.message; } catch(_) {}
+            reject(new Error(msg));
+          }
+        };
+
+        xhr.onerror   = () => reject(new Error('Network error during upload.'));
+        xhr.ontimeout = () => reject(new Error('Upload timed out.'));
+        xhr.timeout   = 120000; // 2 min max per file
+        xhr.send(fd);
+      });
+    }
+
+    // Handle file upload → Cloudinary → save metadata to Firestore
     async function handleGalleryFiles(files) {
       if (!files || files.length === 0) return;
       const arr = Array.from(files);
-
       const newItems = [];
 
       for (let i = 0; i < arr.length; i++) {
@@ -1273,30 +1312,29 @@
         showProgress(`Uploading ${i + 1} / ${arr.length} — ${file.name} (${formatSize(file.size)})`, 0);
 
         try {
-          const { url, storagePath } = await lifeOSUploadFile(
+          const { url, publicId } = await uploadToCloudinary(
             file,
-            'gallery',
-            pct => showProgress(`Uploading ${i + 1} / ${arr.length} — ${file.name}`, Math.round(pct * 0.95))
+            pct => showProgress(`Uploading ${i + 1} / ${arr.length} — ${file.name}`, pct)
           );
 
-          const item = {
-            id:          uid(),
-            name:        file.name,
+          newItems.push({
+            id:       uid(),
+            name:     file.name,
             type,
-            mime:        file.type,
-            size:        file.size,
+            mime:     file.type,
+            size:     file.size,
             url,
-            storagePath,
-            addedAt:     new Date().toISOString(),
-          };
+            publicId,
+            addedAt:  new Date().toISOString(),
+          });
 
-          newItems.push(item);
-          showProgress(`Saved ${i + 1} / ${arr.length}`, 98);
+          showProgress(`✓ ${i + 1} / ${arr.length} uploaded`, 100);
+
         } catch (err) {
-          console.error('[Gallery] Upload failed for', file.name, err);
+          console.error('[Gallery] Upload failed:', file.name, err);
           hideProgress();
-          alert(`❌ Upload failed for "${file.name}":\n\n${err.message}\n\nMake sure your Firebase Storage rules allow authenticated uploads.`);
-          return; // stop processing remaining files
+          alert(`❌ Upload failed for "${file.name}":\n\n${err.message}`);
+          return;
         }
       }
 
@@ -1311,7 +1349,6 @@
         hideProgress();
       }
 
-      // Reset input so same file can be re-selected
       document.getElementById('galleryFileInput').value = '';
     }
 
@@ -1419,12 +1456,10 @@
       closeLightbox();
     });
 
-    // Delete: remove from Storage + Firestore metadata
+    // Delete: remove from Firestore metadata
+    // (Cloudinary files can be deleted via their API with server-side auth;
+    //  for client-only apps we just remove the reference from Firestore)
     async function deleteGalleryItem(id) {
-      const item = galleryData.find(m => m.id === id);
-      if (item && item.storagePath) {
-        await lifeOSDeleteFile(item.storagePath);
-      }
       galleryData = galleryData.filter(m => m.id !== id);
       await lifeOSSave(GALLERY_KEY, galleryData);
       renderGallery();
