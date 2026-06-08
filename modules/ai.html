@@ -1160,24 +1160,26 @@
     });
 
     // ── Mobile sidebar (reuse from app.js logic) ──
-    const hamburgerBtn = document.getElementById('hamburgerBtn');
-    const sidebar      = document.getElementById('sidebar');
-    const overlay      = document.getElementById('overlay');
+    // Note: hamburgerBtn, sidebar, overlay are already declared in app.js —
+    // reference them from the DOM directly to avoid const re-declaration errors.
+    const aiHamburgerBtn = document.getElementById('hamburgerBtn');
+    const aiSidebar      = document.getElementById('sidebar');
+    const aiOverlay      = document.getElementById('overlay');
 
     function openSidebar() {
-      sidebar.classList.add('open');
-      overlay.style.display = 'block';
-      requestAnimationFrame(() => overlay.classList.add('active'));
+      aiSidebar.classList.add('open');
+      aiOverlay.style.display = 'block';
+      requestAnimationFrame(() => aiOverlay.classList.add('active'));
       document.body.style.overflow = 'hidden';
     }
     function closeSidebar() {
-      sidebar.classList.remove('open');
-      overlay.classList.remove('active');
-      overlay.addEventListener('transitionend', () => { overlay.style.display = 'none'; }, { once: true });
+      aiSidebar.classList.remove('open');
+      aiOverlay.classList.remove('active');
+      aiOverlay.addEventListener('transitionend', () => { aiOverlay.style.display = 'none'; }, { once: true });
       document.body.style.overflow = '';
     }
-    if (hamburgerBtn) hamburgerBtn.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
-    if (overlay)      overlay.addEventListener('click', closeSidebar);
+    if (aiHamburgerBtn) aiHamburgerBtn.addEventListener('click', () => aiSidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+    if (aiOverlay)      aiOverlay.addEventListener('click', closeSidebar);
 
     // ── Live clock ──
     function updateClock() {
