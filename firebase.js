@@ -1,5 +1,5 @@
 // =========================================
-// LIFEOS – FIREBASE CONFIG & SYNC  (v5 – Auth + Storage)
+// LIFEOS – FIREBASE CONFIG & SYNC  (v4 – Auth)
 // firebase.js
 // =========================================
 
@@ -17,38 +17,47 @@
   };
 
   if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-  window._db      = firebase.firestore();
-  window._auth    = firebase.auth();
-  window._storage = firebase.storage();
+  window._db   = firebase.firestore();
+  window._auth = firebase.auth();
 
   // =========================================
   // NAVIGATION HELPER
+  // Works in both browser and Electron
   // =========================================
   window._lifeOSNavigate = function(page) {
+    // In Electron, files are loaded via file:// protocol
     if (window.location.protocol === 'file:') {
+      // Build path relative to current file location
       var base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+      // If we're in modules/ subfolder, go up one level for root pages
       if (base.indexOf('/modules/') !== -1 && (page === 'login.html' || page === 'index.html' || page === 'signup.html')) {
         base = base.substring(0, base.lastIndexOf('/modules/') + 1);
       }
       window.location.href = base + page;
     } else {
+      // Browser: use absolute path
       window.location.replace('/' + page);
     }
   };
 
   // =========================================
   // AUTH READY PROMISE
+  // Any code that needs _currentUser should
+  // await window.authReady before proceeding.
   // =========================================
   window.authReady = new Promise(function(resolve) {
     var unsub = window._auth.onAuthStateChanged(function(user) {
-      unsub();
+      unsub(); // only fire once for the initial check
       if (!user) {
         window._lifeOSNavigate('login.html');
         return;
       }
       window._currentUser = user;
+
+      // Show name in sidebar
       var nameEl = document.getElementById('sidebarUserName');
       if (nameEl) nameEl.textContent = user.displayName || user.email;
+
       resolve(user);
     });
   });
@@ -63,7 +72,7 @@
   };
 
   // =========================================
-  // SCOPED KEY
+  // SCOPED KEY — data isolated per user UID
   // =========================================
   window._scopedKey = function(key) {
     var uid = window._currentUser ? window._currentUser.uid : 'anonymous';
@@ -71,7 +80,7 @@
   };
 
   // =========================================
-  // FIRESTORE SAVE / LOAD
+  // CLOUD SAVE / LOAD
   // =========================================
   window.saveToCloud = async function(key, data) {
     if (!window._currentUser) return;
@@ -110,6 +119,7 @@
   };
 
   window.lifeOSSave = async function(key, data) {
+    // Wait for auth before saving
     await window.authReady;
     localStorage.setItem(window._scopedKey(key), JSON.stringify(data));
     await window.saveToCloud(key, data);
@@ -117,87 +127,10 @@
 
   window.lifeOSLoad = async function(key, defaultValue) {
     if (defaultValue === undefined) defaultValue = [];
+    // Wait for auth before loading
     await window.authReady;
     var data = await window.loadFromCloud(key);
     return data !== null ? data : defaultValue;
-  };
-
-  // =========================================
-  // FIREBASE STORAGE HELPERS
-  // Upload a File object → returns { url, storagePath }
-  // =========================================
-  window.lifeOSUploadFile = async function(file, folder, onProgress) {
-    await window.authReady;
-
-    if (!window._currentUser) throw new Error('Not logged in');
-
-    var uid      = window._currentUser.uid;
-    var ts       = Date.now();
-    var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    var path     = 'users/' + uid + '/' + folder + '/' + ts + '_' + safeName;
-    var ref      = window._storage.ref(path);
-
-    // Use uploadBytesResumable-style via compat SDK
-    var metadata = { contentType: file.type };
-    var task     = ref.put(file, metadata);
-
-    return new Promise(function(resolve, reject) {
-      // Hard timeout — if nothing happens in 60 s, bail
-      var timer = setTimeout(function() {
-        task.cancel();
-        reject(new Error('Upload timed out after 60 seconds. Check your internet connection and Firebase Storage rules.'));
-      }, 60000);
-
-      task.on(
-        'state_changed',
-        function(snap) {
-          // Reset timeout on progress
-          clearTimeout(timer);
-          timer = setTimeout(function() {
-            task.cancel();
-            reject(new Error('Upload stalled. Check your internet connection.'));
-          }, 30000);
-
-          var pct = snap.totalBytes > 0
-            ? Math.round((snap.bytesTransferred / snap.totalBytes) * 100)
-            : 0;
-          if (typeof onProgress === 'function') onProgress(pct);
-        },
-        function(err) {
-          clearTimeout(timer);
-          var msg = err.message || err.code || String(err);
-          // Surface the most common issues clearly
-          if (err.code === 'storage/unauthorized') {
-            msg = 'Permission denied. Please set your Firebase Storage rules to allow authenticated uploads (see docs).';
-          } else if (err.code === 'storage/canceled') {
-            msg = 'Upload was cancelled.';
-          } else if (err.code === 'storage/unknown') {
-            msg = 'Network error. Check your internet connection.';
-          }
-          console.error('[LifeOS] Storage upload error:', err.code, err.message);
-          reject(new Error(msg));
-        },
-        async function() {
-          clearTimeout(timer);
-          try {
-            var url = await task.snapshot.ref.getDownloadURL();
-            resolve({ url: url, storagePath: path });
-          } catch (e) {
-            reject(e);
-          }
-        }
-      );
-    });
-  };
-
-  // Delete a file from Storage by its path
-  window.lifeOSDeleteFile = async function(storagePath) {
-    if (!storagePath) return;
-    try {
-      await window._storage.ref(storagePath).delete();
-    } catch (err) {
-      console.warn('[LifeOS] Storage delete failed (file may already be gone):', err);
-    }
   };
 
   // =========================================
