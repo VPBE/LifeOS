@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LifeOS – Wishlist</title>
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    /* =========================================
+       WISHLIST MODULE – LOCAL STYLES
+       Accent: --accent-teal (#38bdf8)
+       ========================================= */
+
+    :root {
+      --wish-color: #38bdf8;
+      --wish-glow:  rgba(56,189,248,0.18);
+      --wish-muted: rgba(56,189,248,0.08);
+    }
+
+    /* ── Tab Bar ── */
+    .tab-bar {
+      display: flex;
+      gap: 6px;
+      padding: 20px 28px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 18px 12px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color var(--transition), border-color var(--transition);
+      font-family: inherit;
+    }
+    .tab-btn:hover { color: var(--text-primary); }
+    .tab-btn.active { color: var(--wish-color); border-bottom-color: var(--wish-color); }
+
+    /* ── Tab Panels ── */
+    .tab-panel { display: none; padding: 24px 28px; animation: fadeIn 0.2s ease; }
+    .tab-panel.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Summary Bar ── */
+    .summary-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      padding: 20px 28px 0;
+    }
+    .summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: border-color var(--transition);
+    }
+    .summary-card:hover { border-color: rgba(56,189,248,0.3); }
+    .summary-card .s-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+    .summary-card .s-value { font-size: 22px; font-family: var(--font-display); font-weight: 700; color: var(--text-primary); }
+    .summary-card .s-value.green { color: var(--accent-green); }
+    .summary-card .s-value.amber { color: var(--accent-amber); }
+    .summary-card .s-value.teal  { color: var(--wish-color); }
+
+    /* ── Inputs ── */
+    .input-field, .input-select {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 10px 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    .input-field:focus, .input-select:focus { border-color: var(--wish-color); }
+    .input-field::placeholder { color: var(--text-muted); }
+    .input-select option { background: var(--bg-card); }
+
+    /* ── Add Form ── */
+    .add-form {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .add-form .full { grid-column: 1 / -1; }
+    .add-form .form-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; display: block; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: var(--wish-color);
+      color: #041a2e;
+      border: none;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity var(--transition), transform var(--transition);
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .btn-ghost {
+      background: rgba(255,255,255,0.06);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background var(--transition), color var(--transition);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+
+    /* ── Filter / Sort bar ── */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .filter-bar .input-select { width: auto; flex: 0 1 160px; }
+    .filter-bar .search-box { flex: 1; min-width: 160px; position: relative; }
+    .filter-bar .search-box input { padding-left: 34px; }
+    .filter-bar .search-box::before { content: '🔍'; position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 13px; pointer-events: none; }
+
+    /* ── Category chip ── */
+    .cat-chip {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+    .cat-tech        { background: rgba(79,156,249,0.15); color: #4f9cf9; }
+    .cat-clothes     { background: rgba(224,102,160,0.15); color: #e066a0; }
+    .cat-gear        { background: rgba(245,166,35,0.15); color: #f5a623; }
+    .cat-food        { background: rgba(62,207,142,0.15); color: #3ecf8e; }
+    .cat-entertainment { background: rgba(139,124,248,0.15); color: #8b7cf8; }
+    .cat-health      { background: rgba(56,189,248,0.15); color: #38bdf8; }
+    .cat-home        { background: rgba(251,146,60,0.15); color: #fb923c; }
+    .cat-other       { background: rgba(120,120,160,0.15); color: #7878a0; }
+
+    /* ── Priority badge ── */
+    .prio-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+    .prio-high   { background: rgba(248,113,113,0.15); color: #f87171; }
+    .prio-medium { background: rgba(245,166,35,0.15);  color: #f5a623; }
+    .prio-low    { background: rgba(120,120,160,0.15); color: #7878a0; }
+
+    /* ── Wishlist Grid ── */
+    .wish-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    /* ── Item Card ── */
+    .wish-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .wish-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--wish-color), transparent);
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+    .wish-card:hover { border-color: rgba(56,189,248,0.3); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+    .wish-card:hover::before { opacity: 1; }
+
+    .wish-card.can-afford { border-color: rgba(62,207,142,0.35); }
+    .wish-card.can-afford::before { background: linear-gradient(90deg, var(--accent-green), transparent); opacity: 1; }
+
+    .wish-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .wish-card-name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      flex: 1;
+      word-break: break-word;
+    }
+    .wish-card-price {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--wish-color);
+      white-space: nowrap;
+      font-family: var(--font-display);
+    }
+
+    .wish-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .wish-card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .afford-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 99px;
+      background: rgba(62,207,142,0.15);
+      color: var(--accent-green);
+    }
+
+    .wish-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 4px;
+      border-top: 1px solid var(--border);
+    }
+    .action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+      transition: background var(--transition), transform var(--transition);
+      line-height: 1;
+    }
+    .action-btn:hover { background: rgba(255,255,255,0.07); transform: scale(1.15); }
+    .action-buy {
+      background: rgba(62,207,142,0.12);
+      border: 1px solid rgba(62,207,142,0.25);
+      color: var(--accent-green);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: inherit;
+      transition: background var(--transition);
+      margin-left: auto;
+    }
+    .action-buy:hover { background: rgba(62,207,142,0.22); }
+
+    .wish-link {
+      font-size: 12px;
+      color: var(--wish-color);
+      opacity: 0.7;
+      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 200px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .wish-link:hover { opacity: 1; text-decoration: underline; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state h3 { font-family: var(--font-display); font-size: 18px; color: var(--text-primary); margin-bottom: 6px; }
+    .empty-state p  { font-size: 14px; line-height: 1.6; }
+
+    /* ── History tab ── */
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .history-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      opacity: 0.75;
+      transition: opacity var(--transition);
+    }
+    .history-card:hover { opacity: 1; }
+    .history-tick { font-size: 20px; flex-shrink: 0; }
+    .history-info { flex: 1; min-width: 0; }
+    .history-name { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+    .history-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .history-price { font-family: var(--font-display); font-weight: 700; color: var(--accent-green); font-size: 15px; }
+    .btn-restore {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 99px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color var(--transition), color var(--transition);
+    }
+    .btn-restore:hover { border-color: var(--wish-color); color: var(--wish-color); }
+
+    /* ── Progress bar ── */
+    .savings-bar {
+      background: var(--bg-secondary);
+      border-radius: 99px;
+      height: 6px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .savings-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent-green), var(--wish-color));
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 900;
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.22s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      transition: color var(--transition);
+    }
+    .modal-close:hover { color: var(--text-primary); }
+    .modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .modal-grid .full { grid-column: 1 / -1; }
+    .form-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; display: block; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+    /* ── Toggle ── */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    .toggle-label { font-size: 13px; color: var(--text-primary); flex: 1; }
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,0.1);
+      border-radius: 99px;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .toggle-slider::after {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform var(--transition);
+    }
+    .toggle input:checked + .toggle-slider { background: var(--accent-green); }
+    .toggle input:checked + .toggle-slider::after { transform: translateX(16px); }
+
+    /* ── Section heading ── */
+    .section-heading {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 14px;
+      margin-top: 2px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .tab-bar, .summary-bar, .tab-panel { padding-left: 16px; padding-right: 16px; }
+      .add-form { grid-template-columns: 1fr; }
+      .wish-grid { grid-template-columns: 1fr; }
+      .modal-grid { grid-template-columns: 1fr; }
+      .filter-bar { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-name">LifeOS</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="../index.html"           class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+      <a href="school.html"             class="nav-item"><span class="nav-icon">🎓</span><span class="nav-label">School</span></a>
+      <a href="productivity.html"       class="nav-item"><span class="nav-icon">✅</span><span class="nav-label">Productivity</span></a>
+      <a href="notes.html"              class="nav-item"><span class="nav-icon">📝</span><span class="nav-label">Notes</span></a>
+      <a href="finance.html"            class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Finance</span></a>
+      <a href="creator.html"            class="nav-item"><span class="nav-icon">🎬</span><span class="nav-label">Creator</span></a>
+      <a href="relationship.html"       class="nav-item"><span class="nav-icon">💕</span><span class="nav-label">Relationship</span></a>
+      <a href="whop.html"               class="nav-item"><span class="nav-icon">🟠</span><span class="nav-label">Whop Clipping</span></a>
+      <a href="ai.html"                 class="nav-item"><span class="nav-icon">🤖</span><span class="nav-label">AI Assistant</span></a>
+      <a href="calendar.html"           class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Calendar</span></a>
+      <a href="notification.html"       class="nav-item"><span class="nav-icon">🔔</span><span class="nav-label">Notifications</span></a>
+      <a href="analytics.html"          class="nav-item"><span class="nav-icon">📈</span><span class="nav-label">Analytics</span></a>
+      <a href="personalization.html"    class="nav-item"><span class="nav-icon">🎨</span><span class="nav-label">Personalize</span></a>
+      <a href="wishlist.html"           class="nav-item active"><span class="nav-icon">🛍️</span><span class="nav-label">Wishlist</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="sidebarUserName" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 2px;"></div>
+      <button onclick="lifeOSSignOut()" style="background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.25);color:#f87171;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;width:100%;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,80,80,0.2)'" onmouseout="this.style.background='rgba(255,80,80,0.1)'">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main-content">
+    <header class="topbar">
+      <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">☰</button>
+      <div class="topbar-title">🛍️ Wishlist</div>
+      <div class="topbar-date" id="currentDate"></div>
+    </header>
+
+    <!-- Summary Bar -->
+    <div class="summary-bar">
+      <div class="summary-card">
+        <div class="s-label">Wishlist Total</div>
+        <div class="s-value teal" id="sumTotal">₱0</div>
+      </div>
+      <div class="summary-card">
+        <div class="s-label">Current Savings</div>
+        <div class="s-value green" id="sumSavings">₱0</div>
+        <div class="savings-bar"><div class="savings-fill" id="savingsFill" style="width:0%"></div></div>
+      </div>
+      <div class="summary-card">
+        <div class="s-label">Can Afford Now</div>
+        <div class="s-value" id="sumAfford">0 items</div>
+      </div>
+      <div class="summary-card">
+        <div class="s-label">Purchased</div>
+        <div class="s-value amber" id="sumPurchased">0</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="wishlist">Wishlist</button>
+      <button class="tab-btn"        data-tab="history">History</button>
+    </div>
+
+    <!-- ═══ TAB: Wishlist ═══ -->
+    <div class="tab-panel active" id="tab-wishlist">
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <div class="search-box">
+          <input type="text" class="input-field" id="searchInput" placeholder="Search items…">
+        </div>
+        <select class="input-select" id="filterCat">
+          <option value="">All Categories</option>
+          <option value="tech">Tech</option>
+          <option value="clothes">Clothes</option>
+          <option value="gear">Gear</option>
+          <option value="food">Food & Drink</option>
+          <option value="entertainment">Entertainment</option>
+          <option value="health">Health</option>
+          <option value="home">Home</option>
+          <option value="other">Other</option>
+        </select>
+        <select class="input-select" id="filterPrio">
+          <option value="">All Priorities</option>
+          <option value="high">🔴 High</option>
+          <option value="medium">🟡 Medium</option>
+          <option value="low">⚪ Low</option>
+        </select>
+        <select class="input-select" id="sortBy">
+          <option value="added">Newest First</option>
+          <option value="price-asc">Price ↑</option>
+          <option value="price-desc">Price ↓</option>
+          <option value="prio">Priority</option>
+          <option value="name">Name A–Z</option>
+        </select>
+        <button class="btn-primary" onclick="openAddModal()">+ Add Item</button>
+      </div>
+
+      <div class="wish-grid" id="wishGrid"></div>
+    </div>
+
+    <!-- ═══ TAB: History ═══ -->
+    <div class="tab-panel" id="tab-history">
+      <p class="section-heading">Purchased Items</p>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+  </main>
+
+  <div class="overlay" id="overlay" style="display:none;"></div>
+
+  <!-- ══ Add / Edit Modal ══ -->
+  <div class="modal-overlay" id="itemModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Add to Wishlist</div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-grid">
+        <div class="full">
+          <label class="form-label">Item Name *</label>
+          <input type="text" class="input-field" id="fieldName" placeholder="e.g. Sony WH-1000XM5">
+        </div>
+        <div>
+          <label class="form-label">Price (₱) *</label>
+          <input type="number" class="input-field" id="fieldPrice" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div>
+          <label class="form-label">Category</label>
+          <select class="input-select" id="fieldCat">
+            <option value="tech">Tech</option>
+            <option value="clothes">Clothes</option>
+            <option value="gear">Gear</option>
+            <option value="food">Food & Drink</option>
+            <option value="entertainment">Entertainment</option>
+            <option value="health">Health</option>
+            <option value="home">Home</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Priority</label>
+          <select class="input-select" id="fieldPrio">
+            <option value="high">🔴 High</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="low">⚪ Low</option>
+          </select>
+        </div>
+        <div class="full">
+          <label class="form-label">Link (optional)</label>
+          <input type="url" class="input-field" id="fieldLink" placeholder="https://shopee.ph/...">
+        </div>
+        <div class="full">
+          <label class="form-label">Notes (optional)</label>
+          <input type="text" class="input-field" id="fieldNotes" placeholder="Why you want it, size, color…">
+        </div>
+        <div class="full">
+          <div class="toggle-wrap">
+            <span class="toggle-label">💚 Can Afford Now</span>
+            <label class="toggle">
+              <input type="checkbox" id="fieldAfford">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn-primary" onclick="saveItem()">Save Item</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="../firebase.js"></script>
+
+  <!-- Personalization -->
+  <script>
+  (async () => {
+    try {
+      await window.authReady;
+      const prefs = await window.lifeOSLoad('lifeos_prefs', null);
+      if (!prefs) return;
+      const root = document.documentElement;
+      if (prefs.theme && prefs.theme !== 'dark') root.setAttribute('data-lifeos-theme', prefs.theme);
+      if (prefs.accent && prefs.accent !== 'purple') root.setAttribute('data-accent', prefs.accent);
+      if (prefs.compact)     root.setAttribute('data-layout-compact', 'true');
+      if (prefs.miniSidebar) root.setAttribute('data-sidebar-mini',   'true');
+      if (prefs.reducedGlow) root.setAttribute('data-reduced-glow',   'true');
+      if (prefs.animations === false) root.style.setProperty('--transition', '0s');
+      const mc = document.querySelector('.main-content');
+      if (mc) {
+        let css = '';
+        if (prefs.wallpaper === 'custom' && prefs.wallpaperCustom) {
+          css = 'url(' + prefs.wallpaperCustom + ')';
+        } else if (prefs.wallpaper && prefs.wallpaper !== 'none') {
+          const WP_MAP = {
+            aurora:  'linear-gradient(135deg,#0d1117 0%,#1a0533 40%,#0a2540 100%)',
+            cosmos:  'radial-gradient(ellipse at 30% 30%,#1a1a3e 0%,#0a0a1a 60%,#000 100%)',
+            sunset:  'linear-gradient(160deg,#1a0533 0%,#3d0c4e 30%,#7c2d12 70%,#0a0a0a 100%)',
+            ocean:   'linear-gradient(180deg,#001f3f 0%,#003d7a 40%,#001f3f 100%)',
+            forest:  'linear-gradient(160deg,#022c22 0%,#064e3b 40%,#065f46 100%)',
+            neon:    'linear-gradient(135deg,#0a0015 0%,#150025 50%,#001530 100%)',
+            rose:    'linear-gradient(135deg,#1a0a10 0%,#3d1a25 50%,#2a1015 100%)',
+          };
+          css = WP_MAP[prefs.wallpaper] || '';
+        }
+        if (css) { mc.style.backgroundImage = css; mc.style.backgroundSize = 'cover'; mc.style.backgroundAttachment = 'fixed'; }
+      }
+    } catch (_) {}
+  })();
+  </script>
+
+  <script src="../app.js"></script>
+
+  <!-- ══ Wishlist Logic ══ -->
+  <script>
+  // ── Constants ──
+  const STORAGE_KEY  = 'lifeos_wishlist';
+  const HISTORY_KEY  = 'lifeos_wishlist_history';
+  const FINANCE_INC  = 'lifeos_finance_income';
+  const FINANCE_EXP  = 'lifeos_finance_expenses';
+
+  const CAT_LABELS = {
+    tech: 'Tech', clothes: 'Clothes', gear: 'Gear',
+    food: 'Food & Drink', entertainment: 'Entertainment',
+    health: 'Health', home: 'Home', other: 'Other'
+  };
+
+  const PRIO_ORDER = { high: 0, medium: 1, low: 2 };
+
+  // ── State ──
+  let items   = [];
+  let history = [];
+  let savings = 0;
+  let editingId = null;
+
+  // ── Init ──
+  async function init() {
+    await window.authReady;
+    [items, history] = await Promise.all([
+      lifeOSLoad(STORAGE_KEY,  []),
+      lifeOSLoad(HISTORY_KEY,  []),
+    ]);
+    await loadSavings();
+    render();
+    renderHistory();
+    updateSummary();
+  }
+
+  async function loadSavings() {
+    const [income, expenses] = await Promise.all([
+      lifeOSLoad(FINANCE_INC, []),
+      lifeOSLoad(FINANCE_EXP, []),
+    ]);
+    const totalInc = income.reduce((s, t) => s + Number(t.amount || 0), 0);
+    const totalExp = expenses.reduce((s, t) => s + Number(t.amount || 0), 0);
+    savings = Math.max(0, totalInc - totalExp);
+  }
+
+  // ── Save ──
+  async function persist() {
+    await Promise.all([
+      lifeOSSave(STORAGE_KEY, items),
+      lifeOSSave(HISTORY_KEY, history),
+    ]);
+  }
+
+  // ── Summary ──
+  function updateSummary() {
+    const total = items.reduce((s, i) => s + Number(i.price || 0), 0);
+    const affordable = items.filter(i => Number(i.price) <= savings).length;
+
+    document.getElementById('sumTotal').textContent = '₱' + total.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    document.getElementById('sumSavings').textContent = '₱' + savings.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    document.getElementById('sumAfford').textContent = affordable + ' item' + (affordable !== 1 ? 's' : '');
+    document.getElementById('sumPurchased').textContent = history.length;
+
+    const pct = total > 0 ? Math.min(100, (savings / total) * 100) : 0;
+    document.getElementById('savingsFill').style.width = pct + '%';
+  }
+
+  // ── Filters & Sort ──
+  function getFilteredItems() {
+    const q     = document.getElementById('searchInput').value.toLowerCase();
+    const cat   = document.getElementById('filterCat').value;
+    const prio  = document.getElementById('filterPrio').value;
+    const sort  = document.getElementById('sortBy').value;
+
+    let list = [...items];
+    if (q)    list = list.filter(i => i.name.toLowerCase().includes(q) || (i.notes || '').toLowerCase().includes(q));
+    if (cat)  list = list.filter(i => i.category === cat);
+    if (prio) list = list.filter(i => i.priority === prio);
+
+    list.sort((a, b) => {
+      if (sort === 'price-asc')  return Number(a.price) - Number(b.price);
+      if (sort === 'price-desc') return Number(b.price) - Number(a.price);
+      if (sort === 'prio')       return (PRIO_ORDER[a.priority] || 1) - (PRIO_ORDER[b.priority] || 1);
+      if (sort === 'name')       return a.name.localeCompare(b.name);
+      return new Date(b.addedAt) - new Date(a.addedAt); // newest
+    });
+
+    return list;
+  }
+
+  // ── Render Wishlist ──
+  function render() {
+    const grid = document.getElementById('wishGrid');
+    const list = getFilteredItems();
+
+    if (!list.length) {
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="empty-icon">🛍️</div>
+          <h3>${items.length ? 'No items match your filters' : 'Your wishlist is empty'}</h3>
+          <p>${items.length ? 'Try clearing filters or a different search.' : 'Click <strong>+ Add Item</strong> to start adding things you want.'}</p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = list.map(item => buildCard(item)).join('');
+  }
+
+  function buildCard(item) {
+    const price    = Number(item.price || 0);
+    const canAfford = price <= savings;
+    const priceStr = '₱' + price.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+    const catClass  = 'cat-' + (item.category || 'other');
+    const prioClass = 'prio-' + (item.priority || 'medium');
+    const prioLabel = item.priority ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1) : 'Medium';
+    const catLabel  = CAT_LABELS[item.category] || 'Other';
+
+    const affordBadge = (canAfford || item.canAfford)
+      ? `<span class="afford-badge">💚 Can Afford</span>`
+      : '';
+
+    const linkEl = item.link
+      ? `<a class="wish-link" href="${escHtml(item.link)}" target="_blank" rel="noopener">🔗 View Link</a>`
+      : '';
+
+    const notesEl = item.notes
+      ? `<div class="wish-card-desc">${escHtml(item.notes)}</div>`
+      : '';
+
+    return `
+      <div class="wish-card${canAfford ? ' can-afford' : ''}" data-id="${item.id}">
+        <div class="wish-card-top">
+          <div class="wish-card-name">${escHtml(item.name)}</div>
+          <div class="wish-card-price">${priceStr}</div>
+        </div>
+        <div class="wish-card-meta">
+          <span class="cat-chip ${catClass}">${catLabel}</span>
+          <span class="prio-badge ${prioClass}">${prioLabel}</span>
+          ${affordBadge}
+        </div>
+        ${notesEl}
+        ${linkEl}
+        <div class="wish-card-actions">
+          <button class="action-btn" title="Edit" onclick="editItem('${item.id}')">✏️</button>
+          <button class="action-btn" title="Delete" onclick="deleteItem('${item.id}')">🗑️</button>
+          <button class="action-buy" onclick="markPurchased('${item.id}')">✓ Mark Purchased</button>
+        </div>
+      </div>`;
+  }
+
+  // ── Render History ──
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    if (!history.length) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🏷️</div>
+          <h3>No purchases yet</h3>
+          <p>Items you mark as purchased will appear here.</p>
+        </div>`;
+      return;
+    }
+    list.innerHTML = [...history].reverse().map(item => {
+      const price = '₱' + Number(item.price || 0).toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      const date  = item.purchasedAt ? new Date(item.purchasedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+      const catLabel = CAT_LABELS[item.category] || 'Other';
+      return `
+        <div class="history-card">
+          <div class="history-tick">✅</div>
+          <div class="history-info">
+            <div class="history-name">${escHtml(item.name)}</div>
+            <div class="history-meta">${catLabel}${date ? ' · Purchased ' + date : ''}</div>
+          </div>
+          <div class="history-price">${price}</div>
+          <button class="btn-restore" onclick="restoreItem('${item.id}')">↩ Restore</button>
+        </div>`;
+    }).join('');
+  }
+
+  // ── CRUD ──
+  function openAddModal() {
+    editingId = null;
+    document.getElementById('modalTitle').textContent = 'Add to Wishlist';
+    document.getElementById('fieldName').value   = '';
+    document.getElementById('fieldPrice').value  = '';
+    document.getElementById('fieldCat').value    = 'tech';
+    document.getElementById('fieldPrio').value   = 'medium';
+    document.getElementById('fieldLink').value   = '';
+    document.getElementById('fieldNotes').value  = '';
+    document.getElementById('fieldAfford').checked = false;
+    document.getElementById('itemModal').classList.add('open');
+    document.getElementById('fieldName').focus();
+  }
+
+  function editItem(id) {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    editingId = id;
+    document.getElementById('modalTitle').textContent = 'Edit Item';
+    document.getElementById('fieldName').value   = item.name;
+    document.getElementById('fieldPrice').value  = item.price;
+    document.getElementById('fieldCat').value    = item.category || 'tech';
+    document.getElementById('fieldPrio').value   = item.priority || 'medium';
+    document.getElementById('fieldLink').value   = item.link || '';
+    document.getElementById('fieldNotes').value  = item.notes || '';
+    document.getElementById('fieldAfford').checked = !!item.canAfford;
+    document.getElementById('itemModal').classList.add('open');
+    document.getElementById('fieldName').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('itemModal').classList.remove('open');
+    editingId = null;
+  }
+
+  async function saveItem() {
+    const name  = document.getElementById('fieldName').value.trim();
+    const price = parseFloat(document.getElementById('fieldPrice').value);
+    if (!name)       { alert('Please enter an item name.'); return; }
+    if (isNaN(price) || price < 0) { alert('Please enter a valid price.'); return; }
+
+    const payload = {
+      name,
+      price,
+      category:   document.getElementById('fieldCat').value,
+      priority:   document.getElementById('fieldPrio').value,
+      link:       document.getElementById('fieldLink').value.trim(),
+      notes:      document.getElementById('fieldNotes').value.trim(),
+      canAfford:  document.getElementById('fieldAfford').checked,
+    };
+
+    if (editingId) {
+      const idx = items.findIndex(i => i.id === editingId);
+      if (idx !== -1) items[idx] = { ...items[idx], ...payload };
+    } else {
+      items.push({ ...payload, id: uid(), addedAt: new Date().toISOString() });
+    }
+
+    closeModal();
+    await persist();
+    render();
+    updateSummary();
+  }
+
+  async function deleteItem(id) {
+    if (!confirm('Remove this item from your wishlist?')) return;
+    items = items.filter(i => i.id !== id);
+    await persist();
+    render();
+    updateSummary();
+  }
+
+  async function markPurchased(id) {
+    const idx = items.findIndex(i => i.id === id);
+    if (idx === -1) return;
+    const item = { ...items[idx], purchasedAt: new Date().toISOString() };
+    history.push(item);
+    items.splice(idx, 1);
+    await persist();
+    render();
+    renderHistory();
+    updateSummary();
+  }
+
+  async function restoreItem(id) {
+    const idx = history.findIndex(i => i.id === id);
+    if (idx === -1) return;
+    const item = { ...history[idx] };
+    delete item.purchasedAt;
+    history.splice(idx, 1);
+    items.push(item);
+    await persist();
+    render();
+    renderHistory();
+    updateSummary();
+  }
+
+  // ── Helpers ──
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Event listeners ──
+  document.getElementById('searchInput').addEventListener('input', render);
+  document.getElementById('filterCat').addEventListener('change', render);
+  document.getElementById('filterPrio').addEventListener('change', render);
+  document.getElementById('sortBy').addEventListener('change', render);
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Close modal on overlay click
+  document.getElementById('itemModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('itemModal')) closeModal();
+  });
+
+  // Keyboard shortcut: Enter to save
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('itemModal').classList.contains('open')) {
+      e.preventDefault();
+      saveItem();
+    }
+  });
+
+  // ── Boot ──
+  init();
+  </script>
+</body>
+</html>
