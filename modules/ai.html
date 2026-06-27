@@ -1020,48 +1020,29 @@
           body: JSON.stringify({
             model,
             messages: apiMessages,
-            stream: true,
+            stream: false,
             max_tokens: 2048,
             temperature: 0.7
           })
         });
 
         if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error?.message || `API error ${res.status}`);
+          let errMsg = `API error ${res.status}`;
+          try { const errData = await res.json(); errMsg = errData.error?.message || errMsg; } catch {}
+          throw new Error(errMsg);
         }
+
+        const resData = await res.json();
+        fullText = resData.choices?.[0]?.message?.content || '';
 
         // Replace typing indicator with actual response bubble
         typingDiv.remove();
-        const msgDiv = appendMessageDOM('assistant', '', true);
-        const bubbleEl = msgDiv.querySelector('.msg-bubble');
-
-        const reader  = res.body.getReader();
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
-
-          for (const line of lines) {
-            const data = line.slice(6);
-            if (data === '[DONE]') break;
-            try {
-              const json  = JSON.parse(data);
-              const delta = json.choices?.[0]?.delta?.content || '';
-              fullText += delta;
-              bubbleEl.innerHTML = renderMarkdown(fullText);
-              scrollToBottom();
-            } catch { /* skip malformed */ }
-          }
-        }
+        appendMessageDOM('assistant', fullText, true);
+        scrollToBottom();
 
       } catch (err) {
         typingDiv.remove();
-        const errDiv = appendMessageDOM('assistant', `⚠️ Error: ${err.message}`, true);
+        appendMessageDOM('assistant', `⚠️ Error: ${err.message}`, true);
         isStreaming = false;
         sendBtn.disabled = false;
         chatStatus.textContent = 'Ready to help';
