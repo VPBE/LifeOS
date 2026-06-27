@@ -661,7 +661,7 @@
           <div style="display:flex;align-items:center;gap:10px;">
             <select class="model-select" id="modelSelect">
               <option value="llama-3.3-70b" selected>Llama 3.3 70B (Best)</option>
-              <option value="llama3.1-8b">Llama 3.1 8B (Fast)</option>
+              <option value="gpt-oss-120b">GPT OSS 120B (Powerful)</option>
             </select>
             <button class="msg-action-btn" id="clearKeyBtn" title="Change API Key">🔑 Key</button>
           </div>
@@ -1028,7 +1028,11 @@
 
         if (!res.ok) {
           let errMsg = `API error ${res.status}`;
-          try { const errData = await res.json(); errMsg = errData.error?.message || errMsg; } catch {}
+          try {
+            const errData = await res.json();
+            console.error('[Cerebras] Error response:', JSON.stringify(errData));
+            errMsg = errData.error?.message || errData.message || errMsg;
+          } catch(e) { console.error('[Cerebras] Could not parse error:', e); }
           throw new Error(errMsg);
         }
 
