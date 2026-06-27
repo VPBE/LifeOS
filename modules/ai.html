@@ -598,7 +598,7 @@
       <a href="creator.html"      class="nav-item"><span class="nav-icon">🎬</span><span class="nav-label">Creator</span></a>
       <a href="relationship.html" class="nav-item"><span class="nav-icon">💕</span><span class="nav-label">Relationship</span></a>
       <a href="whop.html"         class="nav-item"><span class="nav-icon">🟠</span><span class="nav-label">Whop Clipping</span></a>
-      <a href="ai.html"           class="nav-item active"><span class="nav-icon">🤖</span><span class="nav-label">AI Assistant</span></a>
+      <a href="ai.html"           class="nav-item active"><span class="nav-icon">🤖</span><span class="nav-label">Jarvis</span></a>
       <a href="notification.html"  class="nav-item"><span class="nav-icon">🔔</span><span class="nav-label">Notifications</span></a>
       <a href="calendar.html"      class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Calendar</span></a>
 	  <a href="analytics.html"     class="nav-item"><span class="nav-icon">📈</span><span class="nav-label">Analytics</span></a>
@@ -615,7 +615,7 @@
   <main class="main-content" style="overflow:hidden;display:flex;flex-direction:column;">
     <header class="topbar">
       <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">☰</button>
-      <div class="topbar-title">AI Assistant</div>
+      <div class="topbar-title">Jarvis ⚡</div>
       <div class="topbar-date" id="currentDate"></div>
     </header>
 
@@ -652,10 +652,10 @@
         <!-- Chat Header -->
         <div class="chat-header" id="chatHeader">
           <div class="chat-title-area">
-            <div class="ai-avatar">🤖</div>
+            <div class="ai-avatar">⚡</div>
             <div>
-              <div class="chat-title">LifeOS AI</div>
-              <div class="chat-subtitle" id="chatStatusText">Ready to help</div>
+              <div class="chat-title">Jarvis</div>
+              <div class="chat-subtitle" id="chatStatusText">Connected to your life data</div>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
@@ -671,15 +671,15 @@
         <div class="chat-messages" id="chatMessages">
           <div class="chat-intro" id="chatIntro">
             <div class="chat-intro-icon">✨</div>
-            <h2>What can I help you with?</h2>
-            <p>Your personal AI assistant inside LifeOS. Ask anything — study help, finance tips, content ideas, or just chat.</p>
+            <h2>Hey, I'm Jarvis ⚡</h2>
+            <p>I have access to all your LifeOS data — tasks, habits, exams, finance, and more. Ask me anything about your life.</p>
             <div class="suggested-prompts">
-              <button class="suggestion-chip" data-prompt="Help me make a study plan for my upcoming exams.">📚 Study plan</button>
-              <button class="suggestion-chip" data-prompt="Give me 5 YouTube video ideas for my niche.">🎬 Content ideas</button>
-              <button class="suggestion-chip" data-prompt="Help me build a monthly budget from scratch.">💰 Budget help</button>
-              <button class="suggestion-chip" data-prompt="What are the best productivity tips for students?">✅ Productivity tips</button>
-              <button class="suggestion-chip" data-prompt="Write a short motivational message to start my day.">🌅 Motivate me</button>
-              <button class="suggestion-chip" data-prompt="Give me a cute date night idea on a budget.">💕 Date night idea</button>
+              <button class="suggestion-chip" data-prompt="What should I focus on today?">🎯 What to focus on</button>
+              <button class="suggestion-chip" data-prompt="Give me a quick summary of my day — tasks, habits, and anything urgent.">📋 Summarize my day</button>
+              <button class="suggestion-chip" data-prompt="How am I doing with my finances this month?">💰 Finance check</button>
+              <button class="suggestion-chip" data-prompt="I have an exam coming up. Help me make a study plan.">📚 Study plan</button>
+              <button class="suggestion-chip" data-prompt="What habits do I still need to do today?">🔥 Habits check</button>
+              <button class="suggestion-chip" data-prompt="Motivate me to be productive today.">🌅 Motivate me</button>
             </div>
           </div>
         </div>
@@ -980,14 +980,137 @@
     }
 
     // ── Streaming typist for AI response ──
+
+    // =========================================
+    // JARVIS DATA CONTEXT BUILDER
+    // Pulls all LifeOS data and builds a rich
+    // system prompt so Jarvis knows your life.
+    // =========================================
+    async function buildJarvisContext() {
+      const now   = new Date();
+      const today = now.toDateString();
+      const dateStr = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+      const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+
+      // Load all data in parallel
+      const [todos, habits, notes, exams, income, expenses, moodLogs, pomodoro] = await Promise.all([
+        lifeOSLoad('lifeos_todos',             []),
+        lifeOSLoad('lifeos_habits',            []),
+        lifeOSLoad('lifeos_notes_v2',          []),
+        lifeOSLoad('lifeos_exams',             []),
+        lifeOSLoad('lifeos_finance_income',    []),
+        lifeOSLoad('lifeos_finance_expenses',  []),
+        lifeOSLoad('lifeos_mood',              []),
+        lifeOSLoad('lifeos_pomodoro',          {}),
+      ]);
+
+      // ── Tasks ──
+      const todayTasks     = todos.filter(t => !t.done && t.date === today);
+      const overdueTasks   = todos.filter(t => !t.done && t.date && new Date(t.date) < new Date(now.toDateString()));
+      const completedToday = todos.filter(t => t.done  && t.date === today);
+
+      // ── Habits ──
+      const doneHabits    = habits.filter(h => h.doneToday);
+      const pendingHabits = habits.filter(h => !h.doneToday);
+
+      // ── Notes ──
+      const noteCount = Array.isArray(notes) ? notes.length : 0;
+      const recentNote = Array.isArray(notes) && notes.length
+        ? notes.sort((a,b) => new Date(b.updatedAt||b.createdAt||0) - new Date(a.updatedAt||a.createdAt||0))[0]
+        : null;
+
+      // ── Exams ──
+      const nowMs    = Date.now();
+      const upcoming = exams
+        .map(e => ({ ...e, ms: new Date(e.date).getTime() }))
+        .filter(e => e.ms >= nowMs)
+        .sort((a,b) => a.ms - b.ms);
+      const nextExam = upcoming[0] || null;
+      const daysToExam = nextExam ? Math.ceil((nextExam.ms - nowMs) / (1000*60*60*24)) : null;
+
+      // ── Finance ──
+      const totalIncome   = income.reduce((s,t)   => s + Number(t.amount||0), 0);
+      const totalExpenses = expenses.reduce((s,t) => s + Number(t.amount||0), 0);
+      const netBalance    = totalIncome - totalExpenses;
+      const thisMonth     = now.getMonth();
+      const thisYear      = now.getFullYear();
+      const monthExpenses = expenses
+        .filter(e => { const d = new Date(e.date); return d.getMonth()===thisMonth && d.getFullYear()===thisYear; })
+        .reduce((s,t) => s + Number(t.amount||0), 0);
+
+      // ── Mood ──
+      const MOOD_LABELS = { 1:'😞 Very Bad', 2:'😕 Bad', 3:'😐 Neutral', 4:'🙂 Good', 5:'😄 Great' };
+      const todayMood   = moodLogs.find(m => new Date(m.date).toDateString() === today);
+      const last7Moods  = moodLogs
+        .filter(m => (nowMs - new Date(m.date).getTime()) < 7*24*60*60*1000)
+        .sort((a,b) => new Date(b.date) - new Date(a.date));
+      const avgMood = last7Moods.length
+        ? (last7Moods.reduce((s,m) => s+m.score, 0) / last7Moods.length).toFixed(1)
+        : null;
+
+      // ── Pomodoro ──
+      const pomoSessions = Array.isArray(pomodoro)
+        ? pomodoro.filter(s => new Date(s.date||s.startedAt||0).toDateString() === today).length
+        : (pomodoro.todaySessions || 0);
+
+      // ── Build context string ──
+      const lines = [
+        `You are Jarvis, the personal AI assistant built into LifeOS. You have full access to the user's life data.`,
+        `Be concise, smart, and proactive. Address the user directly. Today is ${dateStr}, ${timeStr}.`,
+        ``,
+        `=== TODAY'S TASKS ===`,
+        todayTasks.length
+          ? todayTasks.map(t => `• ${t.text}${t.priority ? ` [${t.priority}]` : ''}`).join('
+')
+          : '• No tasks due today',
+        overdueTasks.length ? `
+OVERDUE (${overdueTasks.length}): ${overdueTasks.map(t=>t.text).join(', ')}` : '',
+        completedToday.length ? `Completed today: ${completedToday.length}` : '',
+        ``,
+        `=== HABITS ===`,
+        `Done: ${doneHabits.length}/${habits.length}`,
+        pendingHabits.length ? `Still pending: ${pendingHabits.map(h=>h.name).join(', ')}` : 'All habits done!',
+        ``,
+        `=== SCHOOL / EXAMS ===`,
+        nextExam
+          ? `Next exam: ${nextExam.subject || nextExam.name} in ${daysToExam} day${daysToExam===1?'':'s'} (${new Date(nextExam.date).toLocaleDateString()})`
+          : 'No upcoming exams',
+        upcoming.length > 1 ? `Other upcoming: ${upcoming.slice(1,3).map(e=>`${e.subject||e.name} (${new Date(e.date).toLocaleDateString()})`).join(', ')}` : '',
+        ``,
+        `=== NOTES ===`,
+        `Total notes saved: ${noteCount}`,
+        recentNote ? `Most recent note: "${recentNote.title || 'Untitled'}"` : '',
+        ``,
+        `=== FINANCE ===`,
+        `Net balance: ₱${netBalance.toLocaleString()} (Income: ₱${totalIncome.toLocaleString()} - Expenses: ₱${totalExpenses.toLocaleString()})`,
+        `This month's spending: ₱${monthExpenses.toLocaleString()}`,
+        ``,
+        `=== MOOD & FOCUS ===`,
+        `Today's mood: ${todayMood ? MOOD_LABELS[todayMood.score] : 'Not logged yet'}`,
+        avgMood ? `7-day average mood: ${avgMood}/5` : '',
+        `Pomodoro sessions today: ${pomoSessions}`,
+        ``,
+        `=== INSTRUCTIONS ===`,
+        `- When the user asks about their data, refer to the above context.`,
+        `- Be proactive — if you notice something (e.g. exam soon, habits pending, overdue tasks), mention it briefly.`,
+        `- Keep responses concise unless asked for detail.`,
+        `- Currency is Philippine Peso (₱).`,
+      ].filter(l => l !== undefined).join('
+');
+
+      return lines;
+    }
+
     async function streamAssistantResponse(messagesPayload) {
       const key   = getApiKey();
       const model = modelSelect.value;
       const sysPrompt = document.getElementById('systemPrompt').value.trim();
 
-      const apiMessages = sysPrompt
-        ? [{ role: 'system', content: sysPrompt }, ...messagesPayload]
-        : messagesPayload;
+      // Build Jarvis context — always inject life data
+      let jarvisContext = '';
+      try { jarvisContext = await buildJarvisContext(); } catch(e) { console.warn('Context build failed:', e); }
+      const finalSysPrompt = jarvisContext || sysPrompt || 'You are Jarvis, a helpful personal assistant inside LifeOS.';
+      const apiMessages = [{ role: 'system', content: finalSysPrompt }, ...messagesPayload];
 
       chatStatus.textContent = 'Thinking…';
       isStreaming = true;
