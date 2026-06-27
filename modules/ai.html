@@ -1068,11 +1068,9 @@
         ``,
         `=== TODAY'S TASKS ===`,
         todayTasks.length
-          ? todayTasks.map(t => `• ${t.text}${t.priority ? ` [${t.priority}]` : ''}`).join('
-')
+          ? todayTasks.map(t => `- ${t.text}${t.priority ? ` [${t.priority}]` : ''}`).join('\n')
           : '• No tasks due today',
-        overdueTasks.length ? `
-OVERDUE (${overdueTasks.length}): ${overdueTasks.map(t=>t.text).join(', ')}` : '',
+        overdueTasks.length ? `OVERDUE (${overdueTasks.length}): ${overdueTasks.map(t=>t.text).join(', ')}` : '',
         completedToday.length ? `Completed today: ${completedToday.length}` : '',
         ``,
         `=== HABITS ===`,
@@ -1103,8 +1101,7 @@ OVERDUE (${overdueTasks.length}): ${overdueTasks.map(t=>t.text).join(', ')}` : '
         `- Be proactive — if you notice something (e.g. exam soon, habits pending, overdue tasks), mention it briefly.`,
         `- Keep responses concise unless asked for detail.`,
         `- Currency is Philippine Peso (₱).`,
-      ].filter(l => l !== undefined).join('
-');
+      ].filter(l => l !== undefined).join('\n');
 
       return lines;
     }
