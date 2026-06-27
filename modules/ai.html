@@ -660,8 +660,8 @@
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <select class="model-select" id="modelSelect">
-              <option value="llama-3.3-70b" selected>Llama 3.3 70B (Best)</option>
-              <option value="gpt-oss-120b">GPT OSS 120B (Powerful)</option>
+              <option value="gpt-oss-120b" selected>GPT OSS 120B (Best)</option>
+              <option value="llama-3.3-70b">Llama 3.3 70B</option>
             </select>
             <button class="msg-action-btn" id="clearKeyBtn" title="Change API Key">🔑 Key</button>
           </div>
@@ -884,7 +884,7 @@
       activeConvId = id;
       const conv = getActiveConv();
       if (!conv) return;
-      modelSelect.value = conv.model || 'llama-3.3-70b';
+      modelSelect.value = conv.model || 'gpt-oss-120b';
       renderMessages(conv.messages);
       showIntro(conv.messages.length === 0);
       renderHistory();
