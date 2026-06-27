@@ -15,6 +15,105 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Jarvis Morning Briefing ── */
+    .jarvis-briefing {
+      padding: 0 28px 20px;
+    }
+    .jarvis-briefing-inner {
+      background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(79,156,249,0.08));
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 16px;
+      padding: 20px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .jarvis-briefing-inner::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 160px; height: 160px;
+      background: radial-gradient(circle, rgba(124,58,237,0.15), transparent 70%);
+      pointer-events: none;
+    }
+    .jarvis-briefing-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .jarvis-avatar-pulse {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #7c3aed, #4f9cf9);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 0 rgba(124,58,237,0.4);
+      animation: jarvisPulse 2.5s ease infinite;
+    }
+    @keyframes jarvisPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(124,58,237,0.4); }
+      70%  { box-shadow: 0 0 0 10px rgba(124,58,237,0); }
+      100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); }
+    }
+    .jarvis-briefing-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .jarvis-briefing-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .jarvis-refresh-btn {
+      margin-left: auto;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      width: 32px; height: 32px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.2s, border-color 0.2s;
+      flex-shrink: 0;
+    }
+    .jarvis-refresh-btn:hover { color: #a78bfa; border-color: #a78bfa; }
+    .jarvis-briefing-body {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+    }
+    .jarvis-thinking {
+      display: flex; gap: 6px; align-items: center; padding: 4px 0;
+    }
+    .jarvis-thinking span {
+      width: 8px; height: 8px;
+      background: #a78bfa;
+      border-radius: 50%;
+      animation: jarvisThink 1.2s ease infinite;
+    }
+    .jarvis-thinking span:nth-child(2) { animation-delay: 0.2s; }
+    .jarvis-thinking span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes jarvisThink {
+      0%,60%,100% { transform: translateY(0); opacity:0.4; }
+      30%          { transform: translateY(-5px); opacity:1; }
+    }
+    .jarvis-open-link {
+      display: inline-block;
+      margin-top: 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #a78bfa;
+      text-decoration: none;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+    .jarvis-open-link:hover { opacity: 1; }
+  </style>
 </head>
 <body>
 
@@ -86,6 +185,26 @@
         <p>Here's your life at a glance. Pick a module to get started.</p>
       </div>
       <div class="welcome-time" id="currentTime"></div>
+    </section>
+
+    <!-- ======= JARVIS MORNING BRIEFING ======= -->
+    <section class="jarvis-briefing" id="jarvisBriefing" style="display:none;">
+      <div class="jarvis-briefing-inner">
+        <div class="jarvis-briefing-header">
+          <div class="jarvis-avatar-pulse" id="jarvisAvatarPulse">⚡</div>
+          <div>
+            <div class="jarvis-briefing-title">Jarvis</div>
+            <div class="jarvis-briefing-sub" id="jarvisBriefingSub">Preparing your briefing…</div>
+          </div>
+          <button class="jarvis-refresh-btn" id="jarvisRefreshBtn" title="Refresh briefing">↺</button>
+        </div>
+        <div class="jarvis-briefing-body" id="jarvisBriefingBody">
+          <div class="jarvis-thinking">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+        <a href="modules/ai.html" class="jarvis-open-link">Open Jarvis →</a>
+      </div>
     </section>
 
     <section class="modules-grid">
@@ -239,6 +358,155 @@
           .catch(err => console.log('[LifeOS] SW failed:', err));
       });
     }
+  </script>
+
+
+  <!-- ======= JARVIS MORNING BRIEFING SCRIPT ======= -->
+  <script>
+  (async () => {
+    await window.authReady;
+
+    const CACHE_KEY   = 'lifeos_jarvis_briefing_cache';
+    const briefingEl  = document.getElementById('jarvisBriefing');
+    const bodyEl      = document.getElementById('jarvisBriefingBody');
+    const subEl       = document.getElementById('jarvisBriefingSub');
+    const refreshBtn  = document.getElementById('jarvisRefreshBtn');
+    const avatarEl    = document.getElementById('jarvisAvatarPulse');
+
+    const CEREBRAS_KEY = localStorage.getItem('lifeos_cerebras_key');
+    if (!CEREBRAS_KEY) return; // No key = don't show the card
+
+    briefingEl.style.display = 'block';
+
+    // Safe data loader
+    async function safeLoad(key, def) {
+      try { const v = await lifeOSLoad(key, def); return v ?? def; } catch { return def; }
+    }
+
+    // Build the same context as Jarvis module
+    async function buildContext() {
+      const now     = new Date();
+      const today   = now.toDateString();
+      const dateStr = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+      const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+
+      const withTimeout = (p, def) => Promise.race([p, new Promise(r => setTimeout(() => r(def), 5000))]);
+      const [todos, habits, exams, income, expenses, moodLogs] = await Promise.all([
+        withTimeout(safeLoad('lifeos_todos',            []), []),
+        withTimeout(safeLoad('lifeos_habits',           []), []),
+        withTimeout(safeLoad('lifeos_exams',            []), []),
+        withTimeout(safeLoad('lifeos_finance_income',   []), []),
+        withTimeout(safeLoad('lifeos_finance_expenses', []), []),
+        withTimeout(safeLoad('lifeos_mood',             []), []),
+      ]);
+
+      const todayTasks    = todos.filter(t => !t.done && t.date === today);
+      const overdueTasks  = todos.filter(t => !t.done && t.date && new Date(t.date) < new Date(today));
+      const doneHabits    = habits.filter(h => h.doneToday);
+      const pendingHabits = habits.filter(h => !h.doneToday);
+
+      const nowMs    = Date.now();
+      const upcoming = exams
+        .map(e => ({ ...e, ms: new Date(e.date).getTime() }))
+        .filter(e => e.ms >= nowMs)
+        .sort((a,b) => a.ms - b.ms);
+      const nextExam   = upcoming[0] || null;
+      const daysToExam = nextExam ? Math.ceil((nextExam.ms - nowMs) / (1000*60*60*24)) : null;
+
+      const totalInc = income.reduce((s,t) => s + Number(t.amount||0), 0);
+      const totalExp = expenses.reduce((s,t) => s + Number(t.amount||0), 0);
+      const net      = totalInc - totalExp;
+
+      const todayMood = moodLogs.find(m => new Date(m.date).toDateString() === today);
+      const MOODS     = { 1:'Very Bad', 2:'Bad', 3:'Neutral', 4:'Good', 5:'Great' };
+
+      return [
+        'You are Jarvis. Generate a SHORT, friendly morning briefing (3-5 sentences max).',
+        'Be direct, personal, and proactive. No bullet points — just natural flowing sentences.',
+        'Mention what matters most: urgent tasks, upcoming exams, pending habits, or anything worth flagging.',
+        'End with one actionable suggestion for the day.',
+        '',
+        'USER DATA:',
+        'Date: ' + dateStr + ', ' + timeStr,
+        'Tasks due today: ' + (todayTasks.length ? todayTasks.map(t=>t.text).join(', ') : 'none'),
+        overdueTasks.length ? 'OVERDUE tasks: ' + overdueTasks.map(t=>t.text).join(', ') : '',
+        'Habits: ' + doneHabits.length + ' done, ' + pendingHabits.length + ' pending' + (pendingHabits.length ? ' (' + pendingHabits.map(h=>h.name).join(', ') + ')' : ''),
+        nextExam ? 'Next exam: ' + (nextExam.subject||nextExam.name) + ' in ' + daysToExam + ' days' : 'No upcoming exams',
+        'Net balance: ₱' + net.toLocaleString(),
+        todayMood ? 'Mood today: ' + MOODS[todayMood.score] : 'Mood not logged yet',
+      ].filter(Boolean).join('\n');
+    }
+
+    // Render briefing text with simple markdown
+    function renderBriefing(text) {
+      return text.replace(/\n/g, '<br>');
+    }
+
+    async function generateBriefing(force = false) {
+      const todayStr = new Date().toDateString();
+
+      // Check cache
+      if (!force) {
+        try {
+          const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+          if (cached && cached.date === todayStr && cached.text) {
+            bodyEl.innerHTML = renderBriefing(cached.text);
+            subEl.textContent = 'Daily briefing · ' + cached.time;
+            return;
+          }
+        } catch {}
+      }
+
+      // Show thinking state
+      bodyEl.innerHTML = '<div class="jarvis-thinking"><span></span><span></span><span></span></div>';
+      subEl.textContent = 'Generating your briefing…';
+      avatarEl.style.animation = 'jarvisPulse 0.8s ease infinite';
+
+      try {
+        const context = await buildContext();
+
+        const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + CEREBRAS_KEY
+          },
+          body: JSON.stringify({
+            model: 'gpt-oss-120b',
+            messages: [{ role: 'user', content: context }],
+            stream: false,
+            max_tokens: 200,
+            temperature: 0.8
+          })
+        });
+
+        if (!res.ok) throw new Error('API error ' + res.status);
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content || 'Good day! Everything looks on track.';
+
+        const timeStr = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+
+        // Cache it
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ date: todayStr, text, time: timeStr }));
+
+        bodyEl.innerHTML = renderBriefing(text);
+        subEl.textContent = 'Daily briefing · ' + timeStr;
+
+      } catch (err) {
+        bodyEl.textContent = 'Could not load briefing. Check your Jarvis connection.';
+        subEl.textContent = 'Offline';
+        console.warn('[Jarvis] Briefing failed:', err);
+      }
+
+      avatarEl.style.animation = 'jarvisPulse 2.5s ease infinite';
+    }
+
+    // Refresh button — force regenerate
+    refreshBtn.addEventListener('click', () => generateBriefing(true));
+
+    // Run on load
+    generateBriefing();
+  })();
   </script>
 
 </body>
