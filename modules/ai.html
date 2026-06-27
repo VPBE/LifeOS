@@ -992,16 +992,23 @@
       const dateStr = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
       const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
 
-      // Load all data in parallel
+      // Safe loader — never throws, returns default on any error
+      async function safeLoad(key, def) {
+        try { const v = await lifeOSLoad(key, def); return v ?? def; } catch { return def; }
+      }
+
+      // Load all data safely with a 5s timeout
+      const withTimeout = (p, def) => Promise.race([p, new Promise(r => setTimeout(() => r(def), 5000))]);
+
       const [todos, habits, notes, exams, income, expenses, moodLogs, pomodoro] = await Promise.all([
-        lifeOSLoad('lifeos_todos',             []),
-        lifeOSLoad('lifeos_habits',            []),
-        lifeOSLoad('lifeos_notes_v2',          []),
-        lifeOSLoad('lifeos_exams',             []),
-        lifeOSLoad('lifeos_finance_income',    []),
-        lifeOSLoad('lifeos_finance_expenses',  []),
-        lifeOSLoad('lifeos_mood',              []),
-        lifeOSLoad('lifeos_pomodoro',          {}),
+        withTimeout(safeLoad('lifeos_todos',            []), []),
+        withTimeout(safeLoad('lifeos_habits',           []), []),
+        withTimeout(safeLoad('lifeos_notes_v2',         []), []),
+        withTimeout(safeLoad('lifeos_exams',            []), []),
+        withTimeout(safeLoad('lifeos_finance_income',   []), []),
+        withTimeout(safeLoad('lifeos_finance_expenses', []), []),
+        withTimeout(safeLoad('lifeos_mood',             []), []),
+        withTimeout(safeLoad('lifeos_pomodoro',         []), []),
       ]);
 
       // ── Tasks ──
@@ -1049,9 +1056,10 @@
         : null;
 
       // ── Pomodoro ──
-      const pomoSessions = Array.isArray(pomodoro)
-        ? pomodoro.filter(s => new Date(s.date||s.startedAt||0).toDateString() === today).length
-        : (pomodoro.todaySessions || 0);
+      const pomoArr = Array.isArray(pomodoro) ? pomodoro : [];
+      const pomoSessions = pomoArr.filter(s => {
+        try { return new Date(s.date||s.startedAt||0).toDateString() === today; } catch { return false; }
+      }).length;
 
       // ── Build context string ──
       const lines = [
@@ -1106,9 +1114,14 @@ OVERDUE (${overdueTasks.length}): ${overdueTasks.map(t=>t.text).join(', ')}` : '
       const model = modelSelect.value;
       const sysPrompt = document.getElementById('systemPrompt').value.trim();
 
-      // Build Jarvis context — always inject life data
+      // Build Jarvis context — always inject life data (with 6s hard timeout)
       let jarvisContext = '';
-      try { jarvisContext = await buildJarvisContext(); } catch(e) { console.warn('Context build failed:', e); }
+      try {
+        jarvisContext = await Promise.race([
+          buildJarvisContext(),
+          new Promise(r => setTimeout(() => r(''), 6000))
+        ]);
+      } catch(e) { console.warn('Context build failed:', e); }
       const finalSysPrompt = jarvisContext || sysPrompt || 'You are Jarvis, a helpful personal assistant inside LifeOS.';
       const apiMessages = [{ role: 'system', content: finalSysPrompt }, ...messagesPayload];
 
