@@ -777,6 +777,97 @@
     }
     .voice-cancel:hover { background: rgba(248,113,113,0.1); }
 
+    /* ── Command Bar ── */
+    .cmdbar-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(6px);
+      z-index: 9999;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 12vh;
+    }
+    .cmdbar-modal {
+      width: 100%;
+      max-width: 580px;
+      background: var(--bg-card, #1a1a2e);
+      border: 1px solid rgba(167,139,250,0.3);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(167,139,250,0.1);
+      animation: cmdbarDrop 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes cmdbarDrop {
+      from { opacity:0; transform: translateY(-12px) scale(0.97); }
+      to   { opacity:1; transform: translateY(0) scale(1); }
+    }
+    .cmdbar-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+    }
+    .cmdbar-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .cmdbar-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      color: var(--text-primary, #fff);
+      font-family: inherit;
+      caret-color: #a78bfa;
+    }
+    .cmdbar-input::placeholder { color: var(--text-muted, #666); }
+    .cmdbar-esc {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--border, rgba(255,255,255,0.1));
+      border-radius: 6px;
+      padding: 3px 7px;
+      font-size: 11px;
+      color: var(--text-muted, #888);
+      font-family: inherit;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .cmdbar-suggestions {
+      padding: 8px 0;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .cmdbar-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted, #666);
+      letter-spacing: 0.1em;
+      padding: 6px 18px 4px;
+    }
+    .cmdbar-item {
+      padding: 10px 18px;
+      font-size: 14px;
+      color: var(--text-secondary, #ccc);
+      cursor: pointer;
+      transition: background 0.12s;
+      border-radius: 0;
+    }
+    .cmdbar-item:hover, .cmdbar-item.selected {
+      background: rgba(167,139,250,0.12);
+      color: var(--text-primary, #fff);
+    }
+    .cmdbar-footer {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 18px;
+      border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+      font-size: 11px;
+      color: var(--text-muted, #666);
+    }
+
   </style>
 </head>
 <body>
@@ -1336,6 +1427,21 @@
         `- Be proactive — if you notice something (e.g. exam soon, habits pending, overdue tasks), mention it briefly.`,
         `- Keep responses concise unless asked for detail.`,
         `- Currency is Philippine Peso (₱).`,
+        ``,
+        `=== WRITE ACTIONS ===`,
+        `You can write data by including action tags in your response (invisible to user, auto-executed).`,
+        `Format: [ACTION:TYPE|param1:value1|param2:value2]`,
+        ``,
+        `ADD_INCOME   → [ACTION:ADD_INCOME|amount:5000|category:Freelance|note:client project]`,
+        `ADD_EXPENSE  → [ACTION:ADD_EXPENSE|amount:200|desc:Lunch|category:Food]`,
+        `ADD_TASK     → [ACTION:ADD_TASK|text:Submit essay|priority:high]`,
+        `ADD_NOTE     → [ACTION:ADD_NOTE|title:Video ideas|body:content here]`,
+        `LOG_MOOD     → [ACTION:LOG_MOOD|score:4|note:feeling good]`,
+        `MARK_TASK_DONE → [ACTION:MARK_TASK_DONE|text:submit essay]`,
+        `NAVIGATE     → [ACTION:NAVIGATE|page:finance]`,
+        ``,
+        `When user says add income or add expense or add task or add note or log mood, respond naturally AND include the action tag.`,
+        `Example: Done! Added ₱5000 under Freelance. [ACTION:ADD_INCOME|amount:5000|category:Freelance]`,
       ].filter(l => l !== undefined).join('\n');
 
       return lines;
@@ -1414,14 +1520,28 @@
         const resData = await res.json();
         fullText = resData.choices?.[0]?.message?.content || '';
 
+        // Execute any action tags in response
+        let actionResults = [];
+        if (window.jarvisParseActions) {
+          actionResults = await window.jarvisParseActions(fullText);
+        }
+
+        // Strip action tags before displaying
+        const displayText = window.jarvisStripActions ? window.jarvisStripActions(fullText) : fullText;
+
+        // Append action confirmations to display text
+        const finalDisplay = actionResults.length
+          ? displayText + (displayText ? '\n\n' : '') + '✅ ' + actionResults.join(' ')
+          : displayText;
+
         // Replace typing indicator with actual response bubble
         typingDiv.remove();
-        appendMessageDOM('assistant', fullText, true);
+        appendMessageDOM('assistant', finalDisplay, true);
         scrollToBottom();
 
         // Speak response if voice was used (mic was active recently)
         if (window._jarvisVoiceUsed && window.jarvisSpeakResponse) {
-          window.jarvisSpeakResponse(fullText);
+          window.jarvisSpeakResponse(finalDisplay);
           window._jarvisVoiceUsed = false;
         }
 
@@ -1700,6 +1820,316 @@
       window.speechSynthesis.getVoices();
       window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
     }
+
+  })();
+  </script>
+
+
+  <!-- ======= COMMAND BAR ======= -->
+  <div class="cmdbar-overlay" id="cmdbarOverlay" style="display:none;">
+    <div class="cmdbar-modal" id="cmdbarModal">
+      <div class="cmdbar-header">
+        <span class="cmdbar-icon">⚡</span>
+        <input class="cmdbar-input" id="cmdbarInput" placeholder="Ask Jarvis or give a command…" autocomplete="off" spellcheck="false" />
+        <kbd class="cmdbar-esc">ESC</kbd>
+      </div>
+      <div class="cmdbar-suggestions" id="cmdbarSuggestions">
+        <div class="cmdbar-section-label">QUICK COMMANDS</div>
+        <div class="cmdbar-item" data-cmd="Add income ₱">💰 Add income</div>
+        <div class="cmdbar-item" data-cmd="Add expense ₱">💸 Add expense</div>
+        <div class="cmdbar-item" data-cmd="Add task: ">✅ Add task</div>
+        <div class="cmdbar-item" data-cmd="Add note: ">📝 Add note</div>
+        <div class="cmdbar-item" data-cmd="Log mood ">😊 Log mood (1-5)</div>
+        <div class="cmdbar-item" data-cmd="What should I focus on today?">🎯 Focus today</div>
+        <div class="cmdbar-item" data-cmd="Summarize my week">📋 Weekly summary</div>
+      </div>
+      <div class="cmdbar-footer">
+        <span>↵ Send to Jarvis</span>
+        <span>Ctrl+K to open</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ======= JARVIS ACTION ENGINE + COMMAND BAR ======= -->
+  <script>
+  (async function() {
+    await window.authReady;
+
+    // =========================================
+    // ACTION ENGINE
+    // Parses Jarvis responses for ACTION: tags
+    // and writes directly to Firebase
+    // =========================================
+
+    function uid() { return Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+
+    const ACTIONS = {
+
+      async ADD_INCOME(params) {
+        const income = await lifeOSLoad('lifeos_finance_income', []);
+        income.push({
+          id:     uid(),
+          source: params.category || params.source || 'Other',
+          amount: Number(params.amount) || 0,
+          date:   params.date || new Date().toISOString().split('T')[0],
+          note:   params.note || ''
+        });
+        await lifeOSSave('lifeos_finance_income', income);
+        return `Added income of \u20b1${Number(params.amount).toLocaleString()} (${params.category || 'Other'}).`;
+      },
+
+      async ADD_EXPENSE(params) {
+        const expenses = await lifeOSLoad('lifeos_finance_expenses', []);
+        expenses.push({
+          id:       uid(),
+          desc:     params.desc || params.note || params.category || 'Expense',
+          amount:   Number(params.amount) || 0,
+          category: params.category || 'Other',
+          date:     params.date || new Date().toISOString().split('T')[0],
+        });
+        await lifeOSSave('lifeos_finance_expenses', expenses);
+        return `Added expense of \u20b1${Number(params.amount).toLocaleString()} for ${params.desc || params.category || 'Other'}.`;
+      },
+
+      async ADD_TASK(params) {
+        const todos = await lifeOSLoad('lifeos_todos', []);
+        const today = new Date().toDateString();
+        todos.push({
+          id:       Date.now(),
+          text:     params.text || params.task || 'New task',
+          done:     false,
+          priority: params.priority || 'normal',
+          date:     today,
+          category: params.category || ''
+        });
+        await lifeOSSave('lifeos_todos', todos);
+        return `Task added: "${params.text || params.task}".`;
+      },
+
+      async ADD_NOTE(params) {
+        const notes = await lifeOSLoad('lifeos_notes_v2', []);
+        const now   = new Date().toISOString();
+        const body  = params.content || params.body || params.text || '';
+        notes.push({
+          id:          uid(),
+          title:       params.title || body.split('\n')[0].slice(0,60) || 'Jarvis Note',
+          body:        body,
+          tags:        [],
+          folderId:    '',
+          attachments: [],
+          isQuick:     true,
+          date:        now,
+          updated:     now
+        });
+        await lifeOSSave('lifeos_notes_v2', notes);
+        return `Note saved: "${params.title || body.slice(0,40)}".`;
+      },
+
+      async LOG_MOOD(params) {
+        const logs  = await lifeOSLoad('lifeos_mood', []);
+        const today = new Date().toDateString();
+        const score = Math.min(5, Math.max(1, parseInt(params.score) || 3));
+        // Remove any existing today log
+        const filtered = logs.filter(m => new Date(m.date).toDateString() !== today);
+        filtered.push({ score, date: new Date().toISOString(), note: params.note || '' });
+        await lifeOSSave('lifeos_mood', filtered);
+        const LABELS = { 1:'Very Bad', 2:'Bad', 3:'Neutral', 4:'Good', 5:'Great' };
+        return `Mood logged: ${LABELS[score]} (${score}/5).`;
+      },
+
+      async MARK_TASK_DONE(params) {
+        const todos = await lifeOSLoad('lifeos_todos', []);
+        const query = (params.text || '').toLowerCase();
+        let found = false;
+        todos.forEach(t => {
+          if (t.text.toLowerCase().includes(query)) { t.done = true; found = true; }
+        });
+        if (!found) return `Couldn't find a task matching "${params.text}".`;
+        await lifeOSSave('lifeos_todos', todos);
+        return `Marked "${params.text}" as done.`;
+      },
+
+      async NAVIGATE(params) {
+        const MAP = {
+          dashboard:      '../index.html',
+          school:         'school.html',
+          productivity:   'productivity.html',
+          notes:          'notes.html',
+          finance:        'finance.html',
+          creator:        'creator.html',
+          relationship:   'relationship.html',
+          whop:           'whop.html',
+          calendar:       'calendar.html',
+          analytics:      'analytics.html',
+          personalization:'personalization.html',
+          wishlist:       'wishlist.html',
+        };
+        const dest = MAP[(params.page || '').toLowerCase()];
+        if (dest) { setTimeout(() => window.location.href = dest, 800); return `Opening ${params.page}…`; }
+        return `I don't know how to navigate to "${params.page}".`;
+      }
+    };
+
+    // Parse ACTION: tags from Jarvis response
+    async function parseAndExecuteActions(text) {
+      const actionRegex = /\[ACTION:([A-Z_]+)\|([^\]]*)\]/g;
+      let match;
+      const results = [];
+      while ((match = actionRegex.exec(text)) !== null) {
+        const actionName = match[1];
+        const paramStr   = match[2];
+        const params     = {};
+        paramStr.split('|').forEach(pair => {
+          const [k, ...v] = pair.split(':');
+          if (k) params[k.trim()] = v.join(':').trim();
+        });
+        const handler = ACTIONS[actionName];
+        if (handler) {
+          try {
+            const result = await handler(params);
+            results.push(result);
+          } catch(e) {
+            results.push('Error executing ' + actionName + ': ' + e.message);
+          }
+        }
+      }
+      return results;
+    }
+
+    // Strip action tags from display text
+    function stripActionTags(text) {
+      return text.replace(/\[ACTION:[^\]]+\]/g, '').trim();
+    }
+
+    // Expose globally so the main chat can use it
+    window.jarvisParseActions = parseAndExecuteActions;
+    window.jarvisStripActions = stripActionTags;
+
+    // =========================================
+    // COMMAND BAR (Ctrl+K)
+    // =========================================
+    const overlay    = document.getElementById('cmdbarOverlay');
+    const input      = document.getElementById('cmdbarInput');
+    const items      = document.querySelectorAll('.cmdbar-item');
+    let selectedIdx  = -1;
+
+    function openCmdBar() {
+      overlay.style.display = 'flex';
+      input.value = '';
+      selectedIdx = -1;
+      items.forEach(i => i.classList.remove('selected'));
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function closeCmdBar() {
+      overlay.style.display = 'none';
+      input.value = '';
+    }
+
+    // Ctrl+K or Cmd+K globally
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        overlay.style.display === 'none' ? openCmdBar() : closeCmdBar();
+      }
+      if (e.key === 'Escape' && overlay.style.display !== 'none') closeCmdBar();
+    });
+
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeCmdBar(); });
+    document.getElementById('cmdbarEsc')?.addEventListener('click', closeCmdBar);
+
+    // Quick command items
+    items.forEach(item => {
+      item.addEventListener('click', () => {
+        const cmd = item.dataset.cmd;
+        if (cmd) { input.value = cmd; input.focus(); }
+      });
+    });
+
+    // Send on Enter
+    input.addEventListener('keydown', async e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        closeCmdBar();
+        // Send to Jarvis chat
+        const userInputEl = document.getElementById('userInput');
+        if (userInputEl) {
+          userInputEl.value = text;
+          const sendBtn = document.getElementById('sendBtn');
+          if (sendBtn && !sendBtn.disabled) sendBtn.click();
+          else {
+            // If chat not ready, try direct action
+            await handleDirectCommand(text);
+          }
+        }
+      }
+
+      // Arrow key navigation
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIdx = Math.min(selectedIdx + 1, items.length - 1);
+        items.forEach((i,idx) => i.classList.toggle('selected', idx === selectedIdx));
+        if (items[selectedIdx]) input.value = items[selectedIdx].dataset.cmd || '';
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIdx = Math.max(selectedIdx - 1, -1);
+        items.forEach((i,idx) => i.classList.toggle('selected', idx === selectedIdx));
+      }
+    });
+
+    // Direct command handler (bypasses Jarvis AI for simple commands)
+    async function handleDirectCommand(text) {
+      const t = text.toLowerCase().trim();
+      let result = null;
+
+      // Add income: "add income 5000 freelance"
+      const incomeMatch = t.match(/add income\s+[₱p]?(\d+[\d,]*)\s*(.*)/);
+      if (incomeMatch) {
+        result = await ACTIONS.ADD_INCOME({
+          amount: incomeMatch[1].replace(/,/g,''),
+          category: incomeMatch[2] || 'Income',
+          note: incomeMatch[2]
+        });
+      }
+
+      // Add expense: "add expense 200 food"
+      const expMatch = t.match(/add expense\s+[₱p]?(\d+[\d,]*)\s*(.*)/);
+      if (expMatch) {
+        result = await ACTIONS.ADD_EXPENSE({
+          amount: expMatch[1].replace(/,/g,''),
+          category: expMatch[2] || 'Other',
+          desc: expMatch[2]
+        });
+      }
+
+      // Add task: "add task submit essay"
+      const taskMatch = t.match(/add task[:\s]+(.+)/);
+      if (taskMatch) {
+        result = await ACTIONS.ADD_TASK({ text: taskMatch[1] });
+      }
+
+      // Add note: "add note ideas for video"
+      const noteMatch = t.match(/add note[:\s]+(.+)/);
+      if (noteMatch) {
+        result = await ACTIONS.ADD_NOTE({ body: noteMatch[1], title: noteMatch[1].slice(0,50) });
+      }
+
+      // Log mood: "log mood 4"
+      const moodMatch = t.match(/log mood\s+([1-5])/);
+      if (moodMatch) {
+        result = await ACTIONS.LOG_MOOD({ score: moodMatch[1] });
+      }
+
+      if (result && window.showSyncStatus) window.showSyncStatus('✓ ' + result);
+    }
+
+    // Add Ctrl+K hint to the input area
+    const hint = document.querySelector('.input-hint');
+    if (hint) hint.innerHTML += ' &nbsp;·&nbsp; <kbd style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:1px 5px;font-size:10px;">Ctrl+K</kbd> Command bar';
 
   })();
   </script>
