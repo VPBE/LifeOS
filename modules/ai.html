@@ -715,6 +715,68 @@
       line-height: 1.3;
     }
 
+    /* ── Voice Input ── */
+    .btn-mic {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 42px;
+      height: 42px;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s, border-color 0.2s, transform 0.1s;
+      color: var(--text-muted);
+    }
+    .btn-mic:hover {
+      background: rgba(167,139,250,0.12);
+      border-color: rgba(167,139,250,0.4);
+    }
+    .btn-mic.listening {
+      background: rgba(248,113,113,0.15);
+      border-color: rgba(248,113,113,0.5);
+      animation: micPulse 1s ease infinite;
+    }
+    @keyframes micPulse {
+      0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(248,113,113,0.4); }
+      50%      { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(248,113,113,0); }
+    }
+    .voice-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 4px 0;
+      font-size: 12px;
+      color: #f87171;
+      font-weight: 600;
+    }
+    .voice-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #f87171;
+      animation: micPulseDot 0.8s ease infinite alternate;
+    }
+    @keyframes micPulseDot {
+      from { opacity: 1; transform: scale(1); }
+      to   { opacity: 0.4; transform: scale(0.7); }
+    }
+    .voice-cancel {
+      background: none;
+      border: 1px solid rgba(248,113,113,0.3);
+      color: #f87171;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: inherit;
+      margin-left: 4px;
+      transition: background 0.2s;
+    }
+    .voice-cancel:hover { background: rgba(248,113,113,0.1); }
+
   </style>
 </head>
 <body>
@@ -864,17 +926,23 @@
         <!-- Input -->
         <div class="chat-input-area">
           <div class="input-row">
+            <button class="btn-mic" id="micBtn" title="Hold to speak">🎤</button>
             <textarea
               class="chat-textarea"
               id="userInput"
-              placeholder="Ask Jarvis anything…"
+              placeholder="Ask Jarvis anything… or tap 🎤 to speak"
               rows="1"
             ></textarea>
             <button class="btn-send" id="sendBtn" disabled title="Send">
               ↑
             </button>
           </div>
-          <div class="input-hint">Enter to send · Shift+Enter for new line · Jarvis knows your LifeOS data</div>
+          <div class="input-hint">Enter to send · Shift+Enter for new line</div>
+          <div class="voice-status" id="voiceStatus" style="display:none;">
+            <span class="voice-dot"></span>
+            <span id="voiceStatusText">Listening…</span>
+            <button class="voice-cancel" id="voiceCancel">Cancel</button>
+          </div>
           <div class="token-counter" id="tokenCounter"></div>
         </div>
 
@@ -1351,6 +1419,12 @@
         appendMessageDOM('assistant', fullText, true);
         scrollToBottom();
 
+        // Speak response if voice was used (mic was active recently)
+        if (window._jarvisVoiceUsed && window.jarvisSpeakResponse) {
+          window.jarvisSpeakResponse(fullText);
+          window._jarvisVoiceUsed = false;
+        }
+
       } catch (err) {
         typingDiv.remove();
         appendMessageDOM('assistant', `⚠️ Error: ${err.message}`, true);
@@ -1495,6 +1569,139 @@
         newConversation();
       }
     })();
+  </script>
+
+
+  <!-- ======= VOICE INPUT & OUTPUT ======= -->
+  <script>
+  (function() {
+    const micBtn       = document.getElementById('micBtn');
+    const userInput    = document.getElementById('userInput');
+    const voiceStatus  = document.getElementById('voiceStatus');
+    const voiceText    = document.getElementById('voiceStatusText');
+    const voiceCancel  = document.getElementById('voiceCancel');
+
+    // ── Check browser support ──
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      if (micBtn) {
+        micBtn.title = 'Voice not supported in this browser. Use Chrome.';
+        micBtn.style.opacity = '0.3';
+        micBtn.disabled = true;
+      }
+      return;
+    }
+
+    // ── Setup recognition ──
+    const recognition = new SpeechRecognition();
+    recognition.continuous      = false;
+    recognition.interimResults  = true;
+    recognition.lang            = 'en-US';
+    recognition.maxAlternatives = 1;
+
+    let isListening   = false;
+    let finalTranscript = '';
+
+    function startListening() {
+      if (isListening) return;
+      finalTranscript = '';
+      isListening = true;
+      micBtn.classList.add('listening');
+      micBtn.textContent = '🔴';
+      voiceStatus.style.display = 'flex';
+      voiceText.textContent = 'Listening…';
+      try { recognition.start(); } catch(e) { stopListening(); }
+    }
+
+    function stopListening() {
+      isListening = false;
+      micBtn.classList.remove('listening');
+      micBtn.textContent = '🎤';
+      voiceStatus.style.display = 'none';
+      try { recognition.stop(); } catch {}
+    }
+
+    recognition.onresult = (e) => {
+      let interim = '';
+      finalTranscript = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalTranscript += t;
+        else interim += t;
+      }
+      userInput.value = finalTranscript || interim;
+      voiceText.textContent = 'Heard: "' + (finalTranscript || interim).slice(0, 40) + (((finalTranscript || interim).length > 40) ? '…' : '') + '"';
+      // Auto-resize textarea
+      userInput.style.height = 'auto';
+      userInput.style.height = userInput.scrollHeight + 'px';
+    };
+
+    recognition.onend = () => {
+      stopListening();
+      // Auto-send if we got a transcript
+      if (finalTranscript.trim()) {
+        window._jarvisVoiceUsed = true;
+        setTimeout(() => {
+          const sendBtn = document.getElementById('sendBtn');
+          if (sendBtn && !sendBtn.disabled) sendBtn.click();
+        }, 300);
+      }
+    };
+
+    recognition.onerror = (e) => {
+      stopListening();
+      if (e.error === 'not-allowed') {
+        voiceText.textContent = 'Microphone access denied.';
+        voiceStatus.style.display = 'flex';
+        setTimeout(() => { voiceStatus.style.display = 'none'; }, 3000);
+      }
+    };
+
+    micBtn.addEventListener('click', () => {
+      if (isListening) stopListening();
+      else startListening();
+    });
+
+    voiceCancel.addEventListener('click', () => {
+      finalTranscript = '';
+      stopListening();
+      userInput.value = '';
+    });
+
+    // ── Text-to-Speech output ──
+    window.jarvisSpeakResponse = function(text) {
+      if (!window.speechSynthesis) return;
+      // Strip markdown symbols before speaking
+      const clean = text
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .replace(/#{1,6}\s/g, '')
+        .replace(/`/g, '')
+        .replace(/\n+/g, '. ')
+        .trim();
+      // Cancel any current speech
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(clean);
+      utt.rate   = 1.05;
+      utt.pitch  = 1.0;
+      utt.volume = 0.9;
+      // Prefer a natural English voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v =>
+        (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha')) &&
+        v.lang.startsWith('en')
+      ) || voices.find(v => v.lang.startsWith('en'));
+      if (preferred) utt.voice = preferred;
+      window.speechSynthesis.speak(utt);
+    };
+
+    // Load voices (Chrome loads them async)
+    if (window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+  })();
   </script>
 
 </body>
