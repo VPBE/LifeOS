@@ -113,6 +113,89 @@
       transition: opacity 0.2s;
     }
     .jarvis-open-link:hover { opacity: 1; }
+    /* ── Jarvis Insights ── */
+    .jarvis-insights {
+      padding: 0 28px 8px;
+    }
+    .insights-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .insights-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .insights-dismiss-all {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      cursor: pointer;
+      font-family: inherit;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    .insights-dismiss-all:hover { opacity: 1; }
+    .insights-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .insight-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border-left: 3px solid;
+      background: rgba(255,255,255,0.03);
+      border-color: var(--insight-color, #a78bfa);
+      animation: insightSlideIn 0.3s ease;
+      position: relative;
+    }
+    @keyframes insightSlideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .insight-card.urgent  { border-color: #f87171; background: rgba(248,113,113,0.06); }
+    .insight-card.warning { border-color: #fbbf24; background: rgba(251,191,36,0.06); }
+    .insight-card.info    { border-color: #a78bfa; background: rgba(167,139,250,0.06); }
+    .insight-card.good    { border-color: #3ecf8e; background: rgba(62,207,142,0.06); }
+    .insight-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .insight-content { flex: 1; }
+    .insight-msg {
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+    .insight-action {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #a78bfa;
+      text-decoration: none;
+      opacity: 0.9;
+    }
+    .insight-action:hover { opacity: 1; text-decoration: underline; }
+    .insight-dismiss {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 0 0 0 8px;
+      line-height: 1;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+    .insight-dismiss:hover { opacity: 1; }
   </style>
 </head>
 <body>
@@ -205,6 +288,15 @@
         </div>
         <a href="modules/ai.html" class="jarvis-open-link">Open Jarvis →</a>
       </div>
+    </section>
+
+    <!-- ======= JARVIS INSIGHTS ======= -->
+    <section class="jarvis-insights" id="jarvisInsights" style="display:none;">
+      <div class="insights-header">
+        <span class="insights-title">⚡ Insights</span>
+        <button class="insights-dismiss-all" id="insightsDismissAll">Dismiss all</button>
+      </div>
+      <div class="insights-list" id="insightsList"></div>
     </section>
 
     <section class="modules-grid">
@@ -360,6 +452,207 @@
     }
   </script>
 
+
+  <!-- ======= JARVIS INSIGHTS SCRIPT ======= -->
+  <script>
+  (async () => {
+    await window.authReady;
+
+    const insightsSection = document.getElementById('jarvisInsights');
+    const insightsList    = document.getElementById('insightsList');
+    const dismissAllBtn   = document.getElementById('insightsDismissAll');
+
+    const DISMISSED_KEY = 'lifeos_insights_dismissed';
+    const today = new Date().toDateString();
+
+    // Load dismissed list (reset daily)
+    let dismissed = [];
+    try {
+      const raw = JSON.parse(localStorage.getItem(DISMISSED_KEY) || 'null');
+      if (raw && raw.date === today) dismissed = raw.ids || [];
+    } catch {}
+
+    function saveDismissed() {
+      localStorage.setItem(DISMISSED_KEY, JSON.stringify({ date: today, ids: dismissed }));
+    }
+
+    // Safe loader
+    async function safeLoad(key, def) {
+      try { const v = await lifeOSLoad(key, def); return v ?? def; } catch { return def; }
+    }
+
+    const withTimeout = (p, def) => Promise.race([p, new Promise(r => setTimeout(() => r(def), 5000))]);
+
+    // Load data
+    const [todos, habits, exams, expenses, moodLogs, relationships] = await Promise.all([
+      withTimeout(safeLoad('lifeos_todos',              []), []),
+      withTimeout(safeLoad('lifeos_habits',             []), []),
+      withTimeout(safeLoad('lifeos_exams',              []), []),
+      withTimeout(safeLoad('lifeos_finance_expenses',   []), []),
+      withTimeout(safeLoad('lifeos_mood',               []), []),
+      withTimeout(safeLoad('lifeos_relationship_moments',[]), []),
+    ]);
+
+    const nowMs  = Date.now();
+    const nowDay = new Date(today);
+
+    // ── Run insight checks ──
+    const insights = [];
+
+    // 1. Overdue tasks
+    const overdue = todos.filter(t => !t.done && t.date && new Date(t.date) < nowDay);
+    if (overdue.length > 0) {
+      insights.push({
+        id: 'overdue_tasks',
+        type: 'urgent',
+        icon: '🚨',
+        msg: `You have ${overdue.length} overdue task${overdue.length > 1 ? 's' : ''}: ${overdue.slice(0,2).map(t=>t.text).join(', ')}${overdue.length > 2 ? '…' : ''}.`,
+        action: 'Go to Productivity',
+        href: 'modules/productivity.html'
+      });
+    }
+
+    // 2. Exam coming up soon (≤5 days) 
+    const upcomingExams = exams
+      .map(e => ({ ...e, ms: new Date(e.date).getTime() }))
+      .filter(e => e.ms >= nowMs)
+      .sort((a,b) => a.ms - b.ms);
+    const nextExam = upcomingExams[0];
+    if (nextExam) {
+      const days = Math.ceil((nextExam.ms - nowMs) / (1000*60*60*24));
+      if (days <= 5) {
+        insights.push({
+          id: 'exam_soon',
+          type: days <= 2 ? 'urgent' : 'warning',
+          icon: '📚',
+          msg: `Your ${nextExam.subject || nextExam.name} exam is in ${days} day${days === 1 ? '' : 's'}. Have you studied today?`,
+          action: 'Go to School',
+          href: 'modules/school.html'
+        });
+      }
+    }
+
+    // 3. Pending habits (more than half undone past 6pm)
+    const hour = new Date().getHours();
+    const pendingHabits = habits.filter(h => !h.doneToday);
+    if (hour >= 18 && pendingHabits.length > 0) {
+      insights.push({
+        id: 'pending_habits',
+        type: 'warning',
+        icon: '🔥',
+        msg: `${pendingHabits.length} habit${pendingHabits.length > 1 ? 's' : ''} still pending today: ${pendingHabits.slice(0,3).map(h=>h.name).join(', ')}.`,
+        action: 'Go to Productivity',
+        href: 'modules/productivity.html'
+      });
+    }
+
+    // 4. Mood declining (3+ consecutive days below 3)
+    const last3Moods = moodLogs
+      .sort((a,b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 3);
+    if (last3Moods.length === 3 && last3Moods.every(m => m.score <= 2)) {
+      insights.push({
+        id: 'mood_low',
+        type: 'warning',
+        icon: '💙',
+        msg: `Your mood has been low for 3 days in a row. Take a moment for yourself today.`,
+        action: null,
+        href: null
+      });
+    }
+
+    // 5. High spending this month
+    const thisMonth = new Date().getMonth();
+    const thisYear  = new Date().getFullYear();
+    const monthSpend = expenses
+      .filter(e => { const d = new Date(e.date); return d.getMonth()===thisMonth && d.getFullYear()===thisYear; })
+      .reduce((s,t) => s + Number(t.amount||0), 0);
+    if (monthSpend > 5000) {
+      insights.push({
+        id: 'high_spending',
+        type: 'warning',
+        icon: '💸',
+        msg: `You've spent ₱${monthSpend.toLocaleString()} this month. Check your budget.`,
+        action: 'Go to Finance',
+        href: 'modules/finance.html'
+      });
+    }
+
+    // 6. No relationship moments in 14+ days
+    if (Array.isArray(relationships) && relationships.length > 0) {
+      const lastMoment = relationships
+        .sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+      const daysSince = Math.floor((nowMs - new Date(lastMoment.date).getTime()) / (1000*60*60*24));
+      if (daysSince >= 14) {
+        insights.push({
+          id: 'relationship_gap',
+          type: 'info',
+          icon: '💕',
+          msg: `No relationship moments logged in ${daysSince} days. Plan something special.`,
+          action: 'Go to Relationship',
+          href: 'modules/relationship.html'
+        });
+      }
+    }
+
+    // 7. All habits done — positive insight
+    if (habits.length > 0 && pendingHabits.length === 0) {
+      insights.push({
+        id: 'all_habits_done',
+        type: 'good',
+        icon: '🎉',
+        msg: `All ${habits.length} habits completed today. You're crushing it!`,
+        action: null,
+        href: null
+      });
+    }
+
+    // ── Render insights ──
+    const visible = insights.filter(i => !dismissed.includes(i.id));
+
+    if (visible.length === 0) return;
+
+    insightsSection.style.display = 'block';
+
+    function renderInsight(insight) {
+      const card = document.createElement('div');
+      card.className = 'insight-card ' + insight.type;
+      card.id = 'insight-' + insight.id;
+      card.innerHTML =
+        '<div class="insight-icon">' + insight.icon + '</div>' +
+        '<div class="insight-content">' +
+          '<div class="insight-msg">' + insight.msg + '</div>' +
+          (insight.action && insight.href
+            ? '<a class="insight-action" href="' + insight.href + '">' + insight.action + ' →</a>'
+            : '') +
+        '</div>' +
+        '<button class="insight-dismiss" data-id="' + insight.id + '" title="Dismiss">✕</button>';
+      return card;
+    }
+
+    visible.forEach(i => insightsList.appendChild(renderInsight(i)));
+
+    // Dismiss single
+    insightsList.addEventListener('click', e => {
+      const btn = e.target.closest('.insight-dismiss');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      dismissed.push(id);
+      saveDismissed();
+      const card = document.getElementById('insight-' + id);
+      if (card) { card.style.opacity = '0'; card.style.transform = 'translateY(-4px)'; card.style.transition = '0.2s'; setTimeout(() => card.remove(), 200); }
+      if (insightsList.children.length === 0) insightsSection.style.display = 'none';
+    });
+
+    // Dismiss all
+    dismissAllBtn.addEventListener('click', () => {
+      dismissed = insights.map(i => i.id);
+      saveDismissed();
+      insightsSection.style.display = 'none';
+    });
+
+  })();
+  </script>
 
   <!-- ======= JARVIS MORNING BRIEFING SCRIPT ======= -->
   <script>
