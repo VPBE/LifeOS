@@ -868,6 +868,133 @@
       color: var(--text-muted, #666);
     }
 
+    /* ── Memory Panel ── */
+    .memory-panel {
+      border-top: 1px solid var(--border);
+      padding: 12px 14px;
+      flex-shrink: 0;
+    }
+    .memory-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .memory-view-btn {
+      background: none;
+      border: none;
+      color: #a78bfa;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+    .memory-count {
+      font-size: 11px;
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+    /* Memory Modal */
+    .memory-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 9998;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .memory-modal {
+      background: var(--bg-card, #1a1a2e);
+      border: 1px solid rgba(167,139,250,0.3);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 460px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .memory-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .memory-modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0;
+    }
+    .memory-modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .memory-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .memory-item-content { flex: 1; }
+    .memory-item-key {
+      font-size: 11px;
+      font-weight: 700;
+      color: #a78bfa;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
+    }
+    .memory-item-value {
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+    .memory-item-delete {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 0;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+    .memory-item-delete:hover { opacity: 1; color: #f87171; }
+    .memory-modal-footer {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .memory-clear-all {
+      background: none;
+      border: 1px solid rgba(248,113,113,0.3);
+      color: #f87171;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+    .memory-clear-all:hover { background: rgba(248,113,113,0.1); }
+
   </style>
 </head>
 <body>
@@ -920,7 +1047,31 @@
         <div class="history-list" id="historyList">
           <div class="history-empty">No chats yet.</div>
         </div>
+        <!-- Memory Panel -->
+        <div class="memory-panel">
+          <div class="memory-panel-header">
+            <span>🧠 Memory</span>
+            <button class="memory-view-btn" id="memoryViewBtn" title="View all memories">↗</button>
+          </div>
+          <div class="memory-count" id="memoryCount">No memories yet</div>
+        </div>
       </aside>
+
+      <!-- Memory Modal -->
+      <div class="memory-modal-overlay" id="memoryModalOverlay" style="display:none;">
+        <div class="memory-modal">
+          <div class="memory-modal-header">
+            <div style="font-size:15px;font-weight:700;">🧠 Jarvis Memory</div>
+            <button class="memory-modal-close" id="memoryModalClose">✕</button>
+          </div>
+          <div class="memory-modal-body" id="memoryModalBody">
+            <div style="color:var(--text-muted);font-size:13px;">No memories saved yet. Tell Jarvis something to remember!</div>
+          </div>
+          <div class="memory-modal-footer">
+            <button class="memory-clear-all" id="memoryClearAll">Clear all memories</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Right: Main Chat -->
       <div class="chat-main">
@@ -1326,7 +1477,7 @@
       // Load all data safely with a 5s timeout
       const withTimeout = (p, def) => Promise.race([p, new Promise(r => setTimeout(() => r(def), 5000))]);
 
-      const [todos, habits, notes, exams, income, expenses, moodLogs, pomodoro] = await Promise.all([
+      const [todos, habits, notes, exams, income, expenses, moodLogs, pomodoro, memories] = await Promise.all([
         withTimeout(safeLoad('lifeos_todos',            []), []),
         withTimeout(safeLoad('lifeos_habits',           []), []),
         withTimeout(safeLoad('lifeos_notes_v2',         []), []),
@@ -1335,6 +1486,7 @@
         withTimeout(safeLoad('lifeos_finance_expenses', []), []),
         withTimeout(safeLoad('lifeos_mood',             []), []),
         withTimeout(safeLoad('lifeos_pomodoro',         []), []),
+        withTimeout(safeLoad('lifeos_jarvis_memory',    []), []),
       ]);
 
       // ── Tasks ──
@@ -1422,6 +1574,11 @@
         avgMood ? `7-day average mood: ${avgMood}/5` : '',
         `Pomodoro sessions today: ${pomoSessions}`,
         ``,
+        memories && memories.length ? `=== JARVIS MEMORY ===` : '',
+        memories && memories.length
+          ? memories.map(m => `- ${m.key}: ${m.value}`).join('\n')
+          : '',
+        memories && memories.length ? `` : '',
         `=== INSTRUCTIONS ===`,
         `- When the user asks about their data, refer to the above context.`,
         `- Be proactive — if you notice something (e.g. exam soon, habits pending, overdue tasks), mention it briefly.`,
@@ -1440,8 +1597,13 @@
         `MARK_TASK_DONE → [ACTION:MARK_TASK_DONE|text:submit essay]`,
         `NAVIGATE     → [ACTION:NAVIGATE|page:finance]`,
         ``,
+        `SAVE_MEMORY  → [ACTION:SAVE_MEMORY|key:prefers 25min pomodoro|value:true]`,
+        `FORGET_MEMORY → [ACTION:FORGET_MEMORY|key:prefers 25min pomodoro]`,
+        ``,
         `When user says add income or add expense or add task or add note or log mood, respond naturally AND include the action tag.`,
+        `When user shares a preference, fact about themselves, or something to remember, use SAVE_MEMORY.`,
         `Example: Done! Added ₱5000 under Freelance. [ACTION:ADD_INCOME|amount:5000|category:Freelance]`,
+        `Example: Got it, I'll remember that! [ACTION:SAVE_MEMORY|key:study preference|value:prefers studying at night]`,
       ].filter(l => l !== undefined).join('\n');
 
       return lines;
@@ -1950,6 +2112,29 @@
         return `Marked "${params.text}" as done.`;
       },
 
+      async SAVE_MEMORY(params) {
+        const memories = await lifeOSLoad('lifeos_jarvis_memory', []);
+        const key   = (params.key || '').trim();
+        const value = (params.value || '').trim();
+        if (!key || !value) return 'Memory not saved — missing key or value.';
+        // Update existing or add new
+        const existing = memories.findIndex(m => m.key === key);
+        if (existing >= 0) memories[existing] = { key, value, updated: new Date().toISOString() };
+        else memories.push({ key, value, updated: new Date().toISOString() });
+        // Keep max 30 memories
+        if (memories.length > 30) memories.splice(0, memories.length - 30);
+        await lifeOSSave('lifeos_jarvis_memory', memories);
+        return `Memory saved: ${key} = ${value}`;
+      },
+
+      async FORGET_MEMORY(params) {
+        const memories = await lifeOSLoad('lifeos_jarvis_memory', []);
+        const key = (params.key || '').trim();
+        const filtered = memories.filter(m => m.key !== key);
+        await lifeOSSave('lifeos_jarvis_memory', filtered);
+        return `Forgot: ${key}`;
+      },
+
       async NAVIGATE(params) {
         const MAP = {
           dashboard:      '../index.html',
@@ -2130,6 +2315,120 @@
     // Add Ctrl+K hint to the input area
     const hint = document.querySelector('.input-hint');
     if (hint) hint.innerHTML += ' &nbsp;·&nbsp; <kbd style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:1px 5px;font-size:10px;">Ctrl+K</kbd> Command bar';
+
+  })();
+  </script>
+
+
+  <!-- ======= JARVIS MEMORY UI ======= -->
+  <script>
+  (async function() {
+    await window.authReady;
+
+    const memoryCount       = document.getElementById('memoryCount');
+    const memoryViewBtn     = document.getElementById('memoryViewBtn');
+    const memoryModalOverlay= document.getElementById('memoryModalOverlay');
+    const memoryModalClose  = document.getElementById('memoryModalClose');
+    const memoryModalBody   = document.getElementById('memoryModalBody');
+    const memoryClearAll    = document.getElementById('memoryClearAll');
+
+    async function loadMemories() {
+      try { return await lifeOSLoad('lifeos_jarvis_memory', []); } catch { return []; }
+    }
+
+    async function saveMemories(memories) {
+      await lifeOSSave('lifeos_jarvis_memory', memories);
+    }
+
+    async function refreshCount() {
+      const memories = await loadMemories();
+      if (memoryCount) {
+        memoryCount.textContent = memories.length
+          ? `${memories.length} thing${memories.length > 1 ? 's' : ''} remembered`
+          : 'No memories yet';
+      }
+      return memories;
+    }
+
+    function renderMemories(memories) {
+      if (!memoryModalBody) return;
+      if (!memories.length) {
+        memoryModalBody.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">No memories saved yet. Tell Jarvis something to remember!</div>';
+        return;
+      }
+      memoryModalBody.innerHTML = '';
+      memories
+        .slice()
+        .sort((a,b) => new Date(b.updated) - new Date(a.updated))
+        .forEach(m => {
+          const item = document.createElement('div');
+          item.className = 'memory-item';
+          item.innerHTML =
+            '<div class="memory-item-content">' +
+              '<div class="memory-item-key">' + escapeHtml(m.key) + '</div>' +
+              '<div class="memory-item-value">' + escapeHtml(m.value) + '</div>' +
+            '</div>' +
+            '<button class="memory-item-delete" data-key="' + escapeHtml(m.key) + '" title="Forget this">✕</button>';
+          memoryModalBody.appendChild(item);
+        });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Open modal
+    if (memoryViewBtn) {
+      memoryViewBtn.addEventListener('click', async () => {
+        const memories = await loadMemories();
+        renderMemories(memories);
+        memoryModalOverlay.style.display = 'flex';
+      });
+    }
+
+    // Close modal
+    if (memoryModalClose) {
+      memoryModalClose.addEventListener('click', () => {
+        memoryModalOverlay.style.display = 'none';
+      });
+    }
+    if (memoryModalOverlay) {
+      memoryModalOverlay.addEventListener('click', e => {
+        if (e.target === memoryModalOverlay) memoryModalOverlay.style.display = 'none';
+      });
+    }
+
+    // Delete single memory
+    if (memoryModalBody) {
+      memoryModalBody.addEventListener('click', async e => {
+        const btn = e.target.closest('.memory-item-delete');
+        if (!btn) return;
+        const key = btn.dataset.key;
+        let memories = await loadMemories();
+        memories = memories.filter(m => m.key !== key);
+        await saveMemories(memories);
+        renderMemories(memories);
+        refreshCount();
+      });
+    }
+
+    // Clear all
+    if (memoryClearAll) {
+      memoryClearAll.addEventListener('click', async () => {
+        if (!confirm('Clear all Jarvis memories? This cannot be undone.')) return;
+        await saveMemories([]);
+        renderMemories([]);
+        refreshCount();
+      });
+    }
+
+    // Auto-refresh count after any message (memories may have been added)
+    const observer = new MutationObserver(() => refreshCount());
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) observer.observe(chatMessages, { childList: true });
+
+    // Initial count
+    refreshCount();
 
   })();
   </script>
