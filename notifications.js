@@ -603,49 +603,28 @@
         }
       } catch (_) {}
 
-      // ── Finance bill reminders (3 days before due) ──
-      try {
-        const bills = await window.lifeOSLoad('lifeos_bills', []);
-        bills.forEach(b => {
-          if (!b.dueDate) return;
-          const due      = new Date(b.dueDate);
-          const daysLeft = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
-          const fireKey  = `bill-${b.id || b.name}-${todayStr}`;
-          if (_firedToday.has(fireKey)) return;
-          if ((daysLeft === 3 || daysLeft === 1) && hh === 9 && mm === 0) {
-            _firedToday.add(fireKey);
-            window.lifeOSNotify({
-              title:   '💰 Bill Due Soon',
-              message: `${b.name || 'A bill'} is due in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`,
-              type:    'finance',
-              sound:   'ping',
-              url:     'modules/finance.html',
-            });
-          }
-        });
-      } catch (_) {}
+      // ── Finance bill reminders (DISABLED) ──
+      // No module currently writes to 'lifeos_bills' — Finance has no
+      // bill/subscription tracking feature yet. This block was dead code
+      // (checked a key that never gets populated). Re-enable once a real
+      // bills feature is built in finance.html.
+      //
+      // try {
+      //   const bills = await window.lifeOSLoad('lifeos_bills', []);
+      //   ...
+      // } catch (_) {}
 
-      // ── Creator upload reminders ──
-      try {
-        const uploads = await window.lifeOSLoad('lifeos_uploads', []);
-        uploads.forEach(u => {
-          if (u.uploaded) return;
-          const due      = new Date(u.scheduledDate || u.date);
-          const daysLeft = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
-          const fireKey  = `upload-${u.id || u.title}-${todayStr}`;
-          if (_firedToday.has(fireKey)) return;
-          if (daysLeft === 1 && hh === 10 && mm === 0) {
-            _firedToday.add(fireKey);
-            window.lifeOSNotify({
-              title:   '🎬 Upload Tomorrow',
-              message: `"${u.title || 'Your content'}" is scheduled for tomorrow`,
-              type:    'creator',
-              sound:   'chime',
-              url:     'modules/creator.html',
-            });
-          }
-        });
-      } catch (_) {}
+      // ── Creator upload reminders (DISABLED) ──
+      // Mismatch: this checked 'lifeos_uploads' but creator.html actually
+      // saves to 'lifeos_creator_uploads'. Also, Creator's upload objects
+      // are logged AFTER posting (have `views`, no `scheduledDate`/`uploaded`
+      // fields) — there's no "upcoming scheduled upload" concept yet.
+      // Re-enable once Creator has a real content-calendar/scheduling feature.
+      //
+      // try {
+      //   const uploads = await window.lifeOSLoad('lifeos_creator_uploads', []);
+      //   ...
+      // } catch (_) {}
     }
 
     await check();
