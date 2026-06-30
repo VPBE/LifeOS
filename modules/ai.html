@@ -1477,7 +1477,7 @@
       // Load all data safely with a 5s timeout
       const withTimeout = (p, def) => Promise.race([p, new Promise(r => setTimeout(() => r(def), 5000))]);
 
-      const [todos, habits, notes, exams, income, expenses, moodLogs, pomodoro, memories] = await Promise.all([
+      const [todos, habits, notes, exams, income, expenses, moodLogs, pomodoro, memories, bills] = await Promise.all([
         withTimeout(safeLoad('lifeos_todos',            []), []),
         withTimeout(safeLoad('lifeos_habits',           []), []),
         withTimeout(safeLoad('lifeos_notes_v2',         []), []),
@@ -1487,6 +1487,7 @@
         withTimeout(safeLoad('lifeos_mood',             []), []),
         withTimeout(safeLoad('lifeos_pomodoro',         []), []),
         withTimeout(safeLoad('lifeos_jarvis_memory',    []), []),
+        withTimeout(safeLoad('lifeos_finance_bills',    []), []),
       ]);
 
       // ── Tasks ──
@@ -1539,6 +1540,15 @@
         try { return new Date(s.date||s.startedAt||0).toDateString() === today; } catch { return false; }
       }).length;
 
+      // ── Bills ──
+      const billsArr = Array.isArray(bills) ? bills : [];
+      const unpaidBills = billsArr.filter(b => !b.paid);
+      const overdueBills = unpaidBills.filter(b => new Date(b.dueDate + 'T00:00:00') < new Date(today + ' 00:00:00'));
+      const dueSoonBills = unpaidBills.filter(b => {
+        const diff = Math.ceil((new Date(b.dueDate + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000);
+        return diff >= 0 && diff <= 5;
+      });
+
       // ── Build context string ──
       const lines = [
         `You are Jarvis, the personal AI assistant built into LifeOS. You have full access to the user's life data.`,
@@ -1569,6 +1579,17 @@
         `Net balance: ₱${netBalance.toLocaleString()} (Income: ₱${totalIncome.toLocaleString()} - Expenses: ₱${totalExpenses.toLocaleString()})`,
         `This month's spending: ₱${monthExpenses.toLocaleString()}`,
         ``,
+        `=== BILLS & RECURRING ===`,
+        overdueBills.length
+          ? `OVERDUE (${overdueBills.length}): ${overdueBills.map(b=>`${b.name} ₱${Number(b.amount).toLocaleString()}`).join(', ')}`
+          : '',
+        dueSoonBills.length
+          ? `Due soon: ${dueSoonBills.map(b=>`${b.name} ₱${Number(b.amount).toLocaleString()} (${b.dueDate})`).join(', ')}`
+          : '',
+        (!overdueBills.length && !dueSoonBills.length)
+          ? (unpaidBills.length ? `${unpaidBills.length} pending bill(s), none due within 5 days` : 'No pending bills')
+          : '',
+        ``,
         `=== MOOD & FOCUS ===`,
         `Today's mood: ${todayMood ? MOOD_LABELS[todayMood.score] : 'Not logged yet'}`,
         avgMood ? `7-day average mood: ${avgMood}/5` : '',
@@ -1591,6 +1612,9 @@
         ``,
         `ADD_INCOME   → [ACTION:ADD_INCOME|amount:5000|category:Freelance|note:client project]`,
         `ADD_EXPENSE  → [ACTION:ADD_EXPENSE|amount:200|desc:Lunch|category:Food]`,
+        `ADD_BILL     → [ACTION:ADD_BILL|name:Netflix|amount:549|dueDate:2026-07-15|recurrence:monthly|category:Subscription]`,
+        `PAY_BILL     → [ACTION:PAY_BILL|name:Netflix]`,
+        `(dueDate format: YYYY-MM-DD. recurrence: once, weekly, monthly, or yearly.)`,
         `ADD_TASK     → [ACTION:ADD_TASK|text:Submit essay|priority:high]`,
         `ADD_NOTE     → [ACTION:ADD_NOTE|title:Video ideas|body:content here]`,
         `LOG_MOOD     → [ACTION:LOG_MOOD|score:4|note:feeling good]`,
@@ -2052,6 +2076,51 @@
         });
         await lifeOSSave('lifeos_finance_expenses', expenses);
         return `Added expense of \u20b1${Number(params.amount).toLocaleString()} for ${params.desc || params.category || 'Other'}.`;
+      },
+
+      async ADD_BILL(params) {
+        const bills = await lifeOSLoad('lifeos_finance_bills', []);
+        const dueDate = params.dueDate || params.date || new Date().toISOString().split('T')[0];
+        bills.push({
+          id:         uid(),
+          name:       params.name || params.desc || 'Bill',
+          amount:     Number(params.amount) || 0,
+          category:   params.category || 'Other',
+          dueDate:    dueDate,
+          recurrence: params.recurrence || 'once',
+          notes:      params.notes || '',
+          paid:       false,
+          paidDate:   null
+        });
+        await lifeOSSave('lifeos_finance_bills', bills);
+        return `Added bill: ${params.name || 'Bill'} \u20b1${Number(params.amount).toLocaleString()} due ${dueDate}.`;
+      },
+
+      async PAY_BILL(params) {
+        const bills = await lifeOSLoad('lifeos_finance_bills', []);
+        const query = (params.name || '').toLowerCase();
+        const bill  = bills.find(b => !b.paid && b.name.toLowerCase().includes(query));
+        if (!bill) return `Couldn't find an unpaid bill matching "${params.name}".`;
+
+        bill.paid     = true;
+        bill.paidDate = new Date().toISOString().split('T')[0];
+
+        // Auto-schedule next recurrence, matching finance.html logic
+        if (bill.recurrence && bill.recurrence !== 'once') {
+          const next = new Date(bill.dueDate + 'T00:00:00');
+          if (bill.recurrence === 'weekly')  next.setDate(next.getDate() + 7);
+          if (bill.recurrence === 'monthly') next.setMonth(next.getMonth() + 1);
+          if (bill.recurrence === 'yearly')  next.setFullYear(next.getFullYear() + 1);
+          bills.push({
+            id: uid(), name: bill.name, amount: bill.amount, category: bill.category,
+            dueDate: next.toISOString().split('T')[0],
+            recurrence: bill.recurrence, notes: bill.notes,
+            paid: false, paidDate: null
+          });
+        }
+
+        await lifeOSSave('lifeos_finance_bills', bills);
+        return `Marked "${bill.name}" as paid (\u20b1${Number(bill.amount).toLocaleString()}).`;
       },
 
       async ADD_TASK(params) {
