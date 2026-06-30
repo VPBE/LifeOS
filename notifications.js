@@ -603,16 +603,41 @@
         }
       } catch (_) {}
 
-      // ── Finance bill reminders (DISABLED) ──
-      // No module currently writes to 'lifeos_bills' — Finance has no
-      // bill/subscription tracking feature yet. This block was dead code
-      // (checked a key that never gets populated). Re-enable once a real
-      // bills feature is built in finance.html.
-      //
-      // try {
-      //   const bills = await window.lifeOSLoad('lifeos_bills', []);
-      //   ...
-      // } catch (_) {}
+      // ── Finance bill reminders (3 days & 1 day before due) ──
+      try {
+        const bills = await window.lifeOSLoad('lifeos_finance_bills', []);
+        bills.forEach(b => {
+          if (b.paid || !b.dueDate) return;
+          const due      = new Date(b.dueDate + 'T00:00:00');
+          const daysLeft = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+          const fireKey  = `bill-${b.id || b.name}-${daysLeft}d-${todayStr}`;
+          if (_firedToday.has(fireKey)) return;
+          if ((daysLeft === 3 || daysLeft === 1) && hh === 9 && mm === 0) {
+            _firedToday.add(fireKey);
+            window.lifeOSNotify({
+              title:   '💰 Bill Due Soon',
+              message: `${b.name || 'A bill'} (₱${Number(b.amount).toLocaleString()}) is due in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`,
+              type:    'finance',
+              sound:   'ping',
+              url:     'modules/finance.html',
+            });
+          }
+          // Overdue reminder (once per day, fires once it passes due date)
+          if (daysLeft < 0) {
+            const overdueKey = `bill-overdue-${b.id || b.name}-${todayStr}`;
+            if (!_firedToday.has(overdueKey) && hh === 9 && mm === 0) {
+              _firedToday.add(overdueKey);
+              window.lifeOSNotify({
+                title:   '🚨 Bill Overdue',
+                message: `${b.name || 'A bill'} (₱${Number(b.amount).toLocaleString()}) was due ${Math.abs(daysLeft)} day${Math.abs(daysLeft) > 1 ? 's' : ''} ago`,
+                type:    'finance',
+                sound:   'alert',
+                url:     'modules/finance.html',
+              });
+            }
+          }
+        });
+      } catch (_) {}
 
       // ── Creator upload reminders (DISABLED) ──
       // Mismatch: this checked 'lifeos_uploads' but creator.html actually
