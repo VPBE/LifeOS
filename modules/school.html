@@ -370,7 +370,8 @@
           <div class="input-row">
             <input type="text"   id="className"    placeholder="Subject name (e.g. Math 101)" />
             <input type="number" id="classUnits"   placeholder="Units" min="0" step="0.5" />
-            <input type="time"   id="classTime"    />
+            <input type="time"   id="classTime"    title="Start time" />
+            <input type="time"   id="classTimeEnd" title="End time" />
             <input type="text"   id="classRoom"    placeholder="Room / Online" />
           </div>
           <div class="input-row">
@@ -609,7 +610,8 @@
     async function addClass() {
       const name  = document.getElementById('className').value.trim();
       const units = document.getElementById('classUnits').value.trim();
-      const time  = document.getElementById('classTime').value;
+      const time    = document.getElementById('classTime').value;
+      const timeEnd = document.getElementById('classTimeEnd').value;
       const room  = document.getElementById('classRoom').value.trim();
       const days  = [...selectedClassDays].sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
 
@@ -618,15 +620,20 @@
         alert('Please enter a subject name and select at least one day.');
         return;
       }
+      if (time && timeEnd && timeEnd <= time) {
+        alert('End time must be after the start time.');
+        return;
+      }
 
       const classes = await load(SCHEDULE_KEY);
-      classes.push({ id: Date.now(), name, days, time, room, units: units ? Number(units) : null });
+      classes.push({ id: Date.now(), name, days, time, timeEnd, room, units: units ? Number(units) : null });
       await save(SCHEDULE_KEY, classes);
 
       // Clear inputs
       document.getElementById('className').value = '';
       document.getElementById('classUnits').value = '';
       document.getElementById('classTime').value = '';
+      document.getElementById('classTimeEnd').value = '';
       document.getElementById('classRoom').value = '';
       selectedClassDays = [];
       document.querySelectorAll('#classDayPicker .day-chip').forEach(chip => chip.classList.remove('selected'));
@@ -668,7 +675,7 @@
             <div class="data-item-sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
               ${dayBadges}
               ${c.units != null && c.units !== '' ? `<span class="units-badge">${c.units} unit${Number(c.units) === 1 ? '' : 's'}</span>` : ''}
-              ${c.time ? ' · ' + formatTime(c.time) : ''}
+              ${c.time ? ' · ' + formatTime(c.time) + (c.timeEnd ? '–' + formatTime(c.timeEnd) : '') : ''}
               ${c.room ? ' · ' + c.room : ''}
             </div>
           </div>
