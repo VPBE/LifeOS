@@ -253,6 +253,48 @@
       font-weight: 600;
     }
 
+    /* Units badge */
+    .units-badge {
+      background: rgba(124,110,255,0.15);
+      color: #a99bff;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* ---- Day multi-select chips (Add a Class) ---- */
+    .day-picker {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      width: 100%;
+      margin-bottom: 4px;
+    }
+
+    .day-chip {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: #0f0f13;
+      color: #8888aa;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .day-chip:hover { border-color: rgba(62,207,142,0.4); color: #f0f0f7; }
+
+    .day-chip.selected {
+      background: rgba(62,207,142,0.15);
+      border-color: #3ecf8e;
+      color: #3ecf8e;
+    }
+
+    #classUnits { max-width: 110px; }
+
     /* Mobile adjustments */
     @media (max-width: 768px) {
       .tab-bar { padding: 0 16px 16px; }
@@ -327,13 +369,21 @@
           <h3>Add a Class</h3>
           <div class="input-row">
             <input type="text"   id="className"    placeholder="Subject name (e.g. Math 101)" />
-            <select id="classDay">
-              <option value="">Day</option>
-              <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
-              <option>Thursday</option><option>Friday</option><option>Saturday</option>
-            </select>
+            <input type="number" id="classUnits"   placeholder="Units" min="0" step="0.5" />
             <input type="time"   id="classTime"    />
             <input type="text"   id="classRoom"    placeholder="Room / Online" />
+          </div>
+          <div class="input-row">
+            <div class="day-picker" id="classDayPicker">
+              <div class="day-chip" data-day="Monday">Mon</div>
+              <div class="day-chip" data-day="Tuesday">Tue</div>
+              <div class="day-chip" data-day="Wednesday">Wed</div>
+              <div class="day-chip" data-day="Thursday">Thu</div>
+              <div class="day-chip" data-day="Friday">Fri</div>
+              <div class="day-chip" data-day="Saturday">Sat</div>
+            </div>
+          </div>
+          <div class="input-row">
             <button class="btn-add" onclick="addClass()">+ Add</button>
           </div>
         </div>
@@ -531,28 +581,55 @@
 
     // Day sort order
     const DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const DAY_ABBR  = { Monday:'Mon', Tuesday:'Tue', Wednesday:'Wed', Thursday:'Thu', Friday:'Fri', Saturday:'Sat' };
+
+    // Track which days are currently selected in the "Add a Class" picker
+    let selectedClassDays = [];
+
+    document.getElementById('classDayPicker').addEventListener('click', (e) => {
+      const chip = e.target.closest('.day-chip');
+      if (!chip) return;
+      const day = chip.dataset.day;
+      if (selectedClassDays.includes(day)) {
+        selectedClassDays = selectedClassDays.filter(d => d !== day);
+        chip.classList.remove('selected');
+      } else {
+        selectedClassDays.push(day);
+        chip.classList.add('selected');
+      }
+    });
+
+    // Normalize an old (single `day`) or new (`days` array) class record to always have `days`
+    function normalizeClassDays(c) {
+      if (Array.isArray(c.days) && c.days.length) return c.days;
+      if (c.day) return [c.day];
+      return [];
+    }
 
     async function addClass() {
       const name  = document.getElementById('className').value.trim();
-      const day   = document.getElementById('classDay').value;
+      const units = document.getElementById('classUnits').value.trim();
       const time  = document.getElementById('classTime').value;
       const room  = document.getElementById('classRoom').value.trim();
+      const days  = [...selectedClassDays].sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
 
       // Basic validation
-      if (!name || !day) {
-        alert('Please enter a subject name and select a day.');
+      if (!name || days.length === 0) {
+        alert('Please enter a subject name and select at least one day.');
         return;
       }
 
       const classes = await load(SCHEDULE_KEY);
-      classes.push({ id: Date.now(), name, day, time, room });
+      classes.push({ id: Date.now(), name, days, time, room, units: units ? Number(units) : null });
       await save(SCHEDULE_KEY, classes);
 
       // Clear inputs
       document.getElementById('className').value = '';
-      document.getElementById('classDay').value  = '';
+      document.getElementById('classUnits').value = '';
       document.getElementById('classTime').value = '';
       document.getElementById('classRoom').value = '';
+      selectedClassDays = [];
+      document.querySelectorAll('#classDayPicker .day-chip').forEach(chip => chip.classList.remove('selected'));
 
       await renderSchedule();
     }
@@ -572,26 +649,33 @@
         return;
       }
 
-      // Sort by day order, then by time
+      // Sort by earliest scheduled day, then by time
       classes.sort((a, b) => {
-        const dayDiff = DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day);
-        if (dayDiff !== 0) return dayDiff;
-        return a.time.localeCompare(b.time);
+        const aDays = normalizeClassDays(a), bDays = normalizeClassDays(b);
+        const aFirst = Math.min(...aDays.map(d => DAY_ORDER.indexOf(d)).filter(i => i >= 0), 99);
+        const bFirst = Math.min(...bDays.map(d => DAY_ORDER.indexOf(d)).filter(i => i >= 0), 99);
+        if (aFirst !== bFirst) return aFirst - bFirst;
+        return (a.time || '').localeCompare(b.time || '');
       });
 
-      list.innerHTML = classes.map(c => `
+      list.innerHTML = classes.map(c => {
+        const days = normalizeClassDays(c);
+        const dayBadges = days.map(d => `<span class="day-badge">${DAY_ABBR[d] || d}</span>`).join(' ');
+        return `
         <div class="data-item">
           <div class="data-item-info">
             <div class="data-item-title">${c.name}</div>
-            <div class="data-item-sub">
-              <span class="day-badge">${c.day}</span>
+            <div class="data-item-sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              ${dayBadges}
+              ${c.units != null && c.units !== '' ? `<span class="units-badge">${c.units} unit${Number(c.units) === 1 ? '' : 's'}</span>` : ''}
               ${c.time ? ' · ' + formatTime(c.time) : ''}
               ${c.room ? ' · ' + c.room : ''}
             </div>
           </div>
           <button class="btn-delete" onclick="deleteClass(${c.id})" title="Delete">✕</button>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     // Convert 24hr time to 12hr format
