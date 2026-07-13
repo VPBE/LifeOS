@@ -67,6 +67,21 @@
     .np-menu-sep { height: 1px; background: var(--border); margin: 5px 4px; }
     .np-menubar-title { margin-left: 6px; font-size: 12px; color: var(--np-fg-muted); font-weight: 600; }
 
+    /* ---- Groups ---- */
+    .np-group-chips { display: flex; align-items: center; gap: 4px; margin-left: 10px; flex-wrap: wrap; }
+    .np-group-chip { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: rgba(139,124,248,0.18); color: var(--accent-purple); white-space: nowrap; }
+    .np-group-add-btn { background: none; border: 1px dashed var(--np-border); border-radius: 99px; color: var(--np-fg-muted); font-size: 10px; font-weight: 600; padding: 2px 8px; cursor: pointer; font-family: var(--font-body); transition: all 0.15s; }
+    .np-group-add-btn:hover { border-color: var(--accent-purple); color: var(--accent-purple); }
+    .np-group-filter-chip { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s; font-family: var(--font-body); }
+    .np-group-filter-chip:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+    .np-group-filter-chip.active { background: rgba(139,124,248,0.2); border-color: var(--accent-purple); color: var(--accent-purple); }
+    .oro-groups { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
+    .oro-group-badge { font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 99px; background: rgba(139,124,248,0.15); color: var(--accent-purple); }
+    .np-group-check-row { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text-primary); transition: background 0.15s; }
+    .np-group-check-row:hover { background: rgba(255,255,255,0.05); }
+    .np-group-check-row input { accent-color: var(--accent-purple); width: 16px; height: 16px; }
+    .np-group-del { background: none; border: none; color: #f87171; cursor: pointer; font-size: 12px; }
+
     /* ---- Tab bar ---- */
     .np-tabbar {
       display: flex; align-items: flex-end; gap: 3px; padding: 8px 8px 0;
@@ -263,6 +278,7 @@
             <div class="np-menu-item" onclick="newTab()"><span class="mi-label">New Tab</span><span class="kbd">Ctrl+T</span></div>
             <div class="np-menu-item" onclick="openOpenDialog()"><span class="mi-label">Open…</span><span class="kbd">Ctrl+O</span></div>
             <div class="np-menu-item" onclick="renameActiveTab()"><span class="mi-label">Rename…</span></div>
+            <div class="np-menu-item" onclick="openGroupsModal()"><span class="mi-label">Manage Groups…</span></div>
             <div class="np-menu-sep"></div>
             <div class="np-menu-item" onclick="flushSaveImmediate(_activeId,true)"><span class="mi-label">Save</span><span class="kbd">Ctrl+S</span></div>
             <div class="np-menu-item" onclick="document.getElementById('npFileInput').click()"><span class="mi-label">Attach File…</span></div>
@@ -306,6 +322,7 @@
           </div>
         </div>
         <span class="np-menubar-title" id="npDocTitle"></span>
+        <div class="np-group-chips" id="npGroupChips"></div>
       </div>
 
       <!-- TAB BAR -->
@@ -366,9 +383,25 @@
     <div class="n-modal">
       <h3>📂 Open Note</h3>
       <input class="n-input" id="openSearchInput" placeholder="Search notes…" oninput="renderOpenList()" />
+      <div id="openGroupFilters" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
       <div id="openList" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
       <div class="n-modal-actions">
         <button class="n-btn-cancel" onclick="closeOpenDialog()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUPS MODAL -->
+  <div class="n-modal-backdrop" id="groupsModal">
+    <div class="n-modal" style="width:min(360px, calc(100vw - 40px));">
+      <h3>🗂 Note Groups</h3>
+      <div id="groupsModalList" style="display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;"></div>
+      <div style="display:flex;gap:8px;">
+        <input class="n-input" id="newGroupInput" placeholder="New group name…" style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();addNewGroup();}" />
+        <button class="n-btn-cancel" style="white-space:nowrap;" onclick="addNewGroup()">+ Add</button>
+      </div>
+      <div class="n-modal-actions">
+        <button class="n-btn-cancel" onclick="closeGroupsModal()">Done</button>
       </div>
     </div>
   </div>
@@ -432,6 +465,7 @@
   let _dirtyTimers = {};          // noteId -> debounce timer
   let _prefs = { wordWrap: true, theme: 'dark', zoom: 100, statusBar: true, previewOpen: false };
   let _find = { query: '', matches: [], idx: -1 };
+  let _openGroupFilter = null;
 
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -539,6 +573,7 @@
     updateStatusBar();
     document.getElementById('npDocTitle').textContent = deriveTitle(note);
     document.title = deriveTitle(note) + ' – LifeOS Notepad';
+    renderGroupChips();
   }
 
   function closeTab(id){
@@ -580,6 +615,89 @@
     persistNotes();
   }
   function renameActiveTab(){ if (_activeId) renameTabPrompt(_activeId); }
+
+  // =========================================
+  // GROUPS
+  // =========================================
+  function getAllGroups(){
+    const s = new Set();
+    _notes.forEach(n => (n.groups || []).forEach(g => s.add(g)));
+    return [...s].sort((a, b) => a.localeCompare(b));
+  }
+
+  function renderGroupChips(){
+    const note = findNote(_activeId);
+    const box = document.getElementById('npGroupChips');
+    if (!note) { box.innerHTML = ''; return; }
+    const groups = note.groups || [];
+    box.innerHTML = groups.map(g => `<span class="np-group-chip">${esc(g)}</span>`).join('') +
+      `<button class="np-group-add-btn" onclick="openGroupsModal()" title="Manage groups">${groups.length ? '✎' : '+ Group'}</button>`;
+  }
+
+  function openGroupsModal(){
+    if (!_activeId) return;
+    document.getElementById('newGroupInput').value = '';
+    renderGroupsModalList();
+    document.getElementById('groupsModal').classList.add('open');
+    setTimeout(() => document.getElementById('newGroupInput').focus(), 50);
+  }
+  function closeGroupsModal(){ document.getElementById('groupsModal').classList.remove('open'); }
+
+  function renderGroupsModalList(){
+    const note = findNote(_activeId); if (!note) return;
+    const groups = getAllGroups();
+    const box = document.getElementById('groupsModalList');
+    if (!groups.length) {
+      box.innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:8px 2px;">No groups yet. Create one below.</div>`;
+      return;
+    }
+    box.innerHTML = groups.map(g => {
+      const checked = (note.groups || []).includes(g);
+      return `<label class="np-group-check-row">
+        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleNoteGroup('${esc(g)}')" />
+        <span style="flex:1;">${esc(g)}</span>
+        <button class="np-group-del" onclick="event.preventDefault();event.stopPropagation();deleteGroupEverywhere('${esc(g)}')">✕</button>
+      </label>`;
+    }).join('');
+  }
+
+  function toggleNoteGroup(g){
+    const note = findNote(_activeId); if (!note) return;
+    note.groups = note.groups || [];
+    if (note.groups.includes(g)) note.groups = note.groups.filter(x => x !== g);
+    else note.groups.push(g);
+    note.updated = new Date().toISOString();
+    markTabDirty(_activeId, true);
+    flushSave(_activeId);
+    renderGroupChips();
+    renderGroupsModalList();
+  }
+
+  function addNewGroup(){
+    const input = document.getElementById('newGroupInput');
+    const val = input.value.trim(); if (!val) return;
+    const note = findNote(_activeId); if (!note) return;
+    note.groups = note.groups || [];
+    if (!note.groups.includes(val)) note.groups.push(val);
+    input.value = '';
+    note.updated = new Date().toISOString();
+    markTabDirty(_activeId, true);
+    flushSave(_activeId);
+    renderGroupChips();
+    renderGroupsModalList();
+  }
+
+  function deleteGroupEverywhere(g){
+    if (!confirm(`Remove group "${g}" from all notes?`)) return;
+    _notes.forEach(n => { if (n.groups) n.groups = n.groups.filter(x => x !== g); });
+    persistNotes();
+    if (_openGroupFilter === g) _openGroupFilter = null;
+    renderGroupChips();
+    renderGroupsModalList();
+    renderOpenList();
+  }
+
+  function setOpenGroupFilter(g){ _openGroupFilter = g; renderOpenList(); }
 
   // =========================================
   // EDITOR INPUT / AUTOSAVE
@@ -871,6 +989,7 @@
   // =========================================
   function openOpenDialog(){
     document.getElementById('openSearchInput').value = '';
+    _openGroupFilter = null;
     renderOpenList();
     document.getElementById('openDialog').classList.add('open');
     setTimeout(() => document.getElementById('openSearchInput').focus(), 50);
@@ -879,17 +998,29 @@
   function renderOpenList(){
     const q = document.getElementById('openSearchInput').value.toLowerCase().trim();
     let list = _notes.filter(n => !isEmptyNote(n));
+
+    const groups = getAllGroups();
+    const filterBox = document.getElementById('openGroupFilters');
+    filterBox.innerHTML = groups.length
+      ? `<button class="np-group-filter-chip${!_openGroupFilter ? ' active' : ''}" onclick="setOpenGroupFilter(null)">All</button>` +
+        groups.map(g => `<button class="np-group-filter-chip${_openGroupFilter === g ? ' active' : ''}" onclick="setOpenGroupFilter('${esc(g)}')">${esc(g)}</button>`).join('')
+      : '';
+
+    if (_openGroupFilter) list = list.filter(n => (n.groups || []).includes(_openGroupFilter));
     if (q) list = list.filter(n => deriveTitle(n).toLowerCase().includes(q) || (n.body || '').toLowerCase().includes(q));
     list = list.sort((a, b) => new Date(b.updated || b.date) - new Date(a.updated || a.date));
     const box = document.getElementById('openList');
     if (!list.length) { box.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">No notes found.</div>`; return; }
     box.innerHTML = list.map(n => {
       const preview = (n.body || '').replace(/[#*`_~>\[\]]/g, '').slice(0, 70);
+      const groupBadges = (n.groups || []).length
+        ? `<div class="oro-groups">${n.groups.map(g => `<span class="oro-group-badge">${esc(g)}</span>`).join('')}</div>` : '';
       return `<div class="np-open-row" onclick="chooseOpenNote('${n.id}')">
         <div style="flex:1;overflow:hidden;">
           <div class="oro-title">${esc(deriveTitle(n))}</div>
           <div class="oro-preview">${esc(preview) || 'Empty note'}</div>
           <div class="oro-date">${fmtDate(n.updated || n.date)}</div>
+          ${groupBadges}
         </div>
         <button class="np-open-del" onclick="event.stopPropagation();deleteNoteFromList('${n.id}')">✕</button>
       </div>`;
@@ -953,7 +1084,7 @@
     else if (meta && e.key === '0') { e.preventDefault(); zoomReset(); }
     else if (e.key === 'F5') { e.preventDefault(); insertDateTime(); }
     else if (e.key === 'F3') { e.preventDefault(); e.shiftKey ? findPrev() : findNext(); }
-    else if (e.key === 'Escape') { closeFindBar(); closeOpenDialog(); }
+    else if (e.key === 'Escape') { closeFindBar(); closeOpenDialog(); closeGroupsModal(); }
   });
 
   // =========================================
@@ -969,6 +1100,7 @@
   });
   document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   document.getElementById('openDialog').addEventListener('click', function(e){ if (e.target === this) closeOpenDialog(); });
+  document.getElementById('groupsModal').addEventListener('click', function(e){ if (e.target === this) closeGroupsModal(); });
 
   // Flush save on tab/window close
   window.addEventListener('beforeunload', () => { if (_activeId) flushSaveImmediate(_activeId); });
